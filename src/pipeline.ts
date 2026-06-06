@@ -1,4 +1,4 @@
-import type { Extractor } from "./extraction/stub.js";
+import type { Extractor } from "./extraction/types.js";
 import type { FactClose, RecalledFact, TemporalGraphStore } from "./db/store.js";
 
 /**
@@ -30,11 +30,11 @@ export async function remember(
   sourceLabel: string | null = null,
 ): Promise<RememberSummary> {
   const source = await store.insertSource(text, sourceLabel);
-  const extracted = extractor.extract(text);
+  const extracted = await extractor.extract(text);
 
   const summary: RememberSummary = { sourceId: source.id, factsCreated: [], factsSuperseded: [] };
 
-  for (const fact of extracted) {
+  for (const fact of extracted.facts) {
     const subject = await store.upsertEntity(fact.subject);
     const object = await store.upsertEntity(fact.object);
 

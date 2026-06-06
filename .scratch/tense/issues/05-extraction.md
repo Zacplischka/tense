@@ -23,3 +23,21 @@ The Extraction module: turn a Source's prose into Entities and Facts via structu
 
 - `02-provider-client-embeddings-config`
 - `04-smoke-gold-set`
+
+## Comments
+
+✅ **Completed 2026-06-06** (HITL quality sign-off pending). Verified live.
+
+- Unified `Extractor` interface (`src/extraction/types.ts`); `StubExtractor`
+  (slice 01) updated to implement it as a replayable test double.
+- `LlmExtractor` (`src/extraction/llm-extractor.ts`) — structured-output
+  completion → zod-validated `{ entities, facts }`; predicate slugs normalized;
+  `valid_at`/`invalid_at` parsed (null when the Source states none → feeds the
+  degenerate path).
+- **Static prompt asset** `src/extraction/prompts.ts` (seeded from Graphiti's
+  extract approach; DSPy optimization is slice 14).
+- **Bad-output handling:** non-JSON / schema-invalid output → `ExtractionError`
+  (unit-tested). Slice 07 turns this into a clean `remember` error without
+  crashing the server.
+- **Live smoke** over `eval/smoke-gold.ts`: entityRecall=1.00, factRecall=1.00,
+  predicateAccuracy=1.00, validAtAccuracy=1.00 (`openai/gpt-4o-mini`).

@@ -22,6 +22,11 @@ export class PredicateRegistry {
   cardinalityOf(predicate: string): Cardinality {
     return this.map.get(predicate) ?? "multi";
   }
+
+  /** Known (predicate, cardinality) pairs — e.g. to guide the extractor. */
+  entries(): Array<[string, Cardinality]> {
+    return [...this.map.entries()];
+  }
 }
 
 /** Registry seeded with the demo Predicates. */

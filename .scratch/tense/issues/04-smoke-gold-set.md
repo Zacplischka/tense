@@ -21,3 +21,17 @@ A small, human-curated set of 3–5 Source→expected-graph scenarios used to ve
 ## Blocked by
 
 None - can start immediately (parallel with build).
+
+## Comments
+
+⚙️ **AFK-authored 2026-06-06 (HITL sign-off pending).** Since the build ran
+autonomously, the agent authored the smoke set from the canonical demo;
+**a human should still review the scenarios/expected graphs.**
+
+- `eval/smoke-gold.ts` — 5 scenarios, each a Source + expected Entities/Facts
+  (subject, predicate, object, `valid_at`), with tags.
+- Coverage: supersession scenarios (`reports-to` org change; cross-predicate
+  `left`) and null-`valid_at` prose; one dated scenario exercises `valid_at`.
+- `test/smoke-gold.test.ts` asserts well-formedness + required coverage.
+- Live extraction over this set (slice 05) scored entityRecall/factRecall/
+  predicateAccuracy/validAtAccuracy = 1.00.

@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { Extractor } from "../extraction/stub.js";
+import type { Extractor } from "../extraction/types.js";
 import type { TemporalGraphStore } from "../db/store.js";
 import { recall, remember } from "../pipeline.js";
 
