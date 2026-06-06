@@ -131,6 +131,54 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 | `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
 | `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown |
 
+### Worked example
+
+The org-change story end to end. (`id`/`sourceId` are UUIDs, abbreviated here;
+every other value is exactly what the tools return.)
+
+**1. `remember` the first Source** — `text: "[2024-01-01] Zach reports to Alice."`, `source: "org-2024q1"`:
+
+```json
+{ "sourceId": "0d67…", "factsReaffirmed": [],
+  "factsCreated": [{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice" }],
+  "factsSuperseded": [] }
+```
+
+**2. `remember` the change** — `text: "[2024-06-01] Zach reports to Bob."`, `source: "org-2024q2"`.
+`reports-to` is single-valued, so the Alice Fact is **superseded** (closed, not deleted):
+
+```json
+{ "sourceId": "7deb…", "factsReaffirmed": [],
+  "factsCreated": [{ "id": "3d7b…", "subject": "Zach", "predicate": "reports-to", "object": "Bob" }],
+  "factsSuperseded": [{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice" }] }
+```
+
+**3. `recall` now** — `query: "Zach reports to"` returns only the Current Fact, with its Source and open validity interval:
+
+```json
+[{ "id": "3d7b…", "subject": "Zach", "predicate": "reports-to", "object": "Bob",
+   "validAt": "2024-06-01T00:00:00.000Z", "invalidAt": null, "current": true,
+   "source": { "id": "7deb…", "label": "org-2024q2", "text": "[2024-06-01] Zach reports to Bob." } }]
+```
+
+**4. `recall` point-in-time** — same `query` with `as_of: "2024-03-01"` returns who was Current *then* — Alice — closed off at the moment Bob took over:
+
+```json
+[{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice",
+   "validAt": "2024-01-01T00:00:00.000Z", "invalidAt": "2024-06-01T00:00:00.000Z", "current": false,
+   "source": { "id": "0d67…", "label": "org-2024q1", "text": "[2024-01-01] Zach reports to Alice." } }]
+```
+
+**5. `history`** — `entity: "Zach"`, `predicate: "reports-to"` returns the whole chain chronologically: the closed Alice Fact, then the Current Bob Fact (same shape as the recall rows above).
+
+**6. `stats`** — the graph at a glance:
+
+```json
+{ "entities": 3, "sources": 2,
+  "facts": { "total": 2, "current": 1, "superseded": 1 },
+  "predicates": [{ "predicate": "reports-to", "current": 1, "total": 2 }] }
+```
+
 ### The live viewer
 
 ```bash

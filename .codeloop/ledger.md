@@ -49,8 +49,8 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   (iter 2): `test/store-helpers.test.ts`.
 - [DX/tooling] No ESLint/Prettier; a strict, isolated config would catch drift.
   (Higher blast radius — may flag many existing lines; needs a careful config.)
-- [docs] README has no worked example of tool JSON I/O. (Note: verifying it
-  means capturing real tool output, not hand-writing JSON — soft gate.)
+- ~~[docs] README worked example of tool JSON I/O~~ — DONE (iter 4): captured
+  from a real StubExtractor run, throwaway capture script deleted.
 - ~~[readability] `expireFacts`/`supersedeAndInsert` shared close loop~~ — DONE
   (iter 3): extracted `closeFactsTx`.
 - [DX/tooling] (still open) ESLint/Prettier — biggest remaining lever but highest
@@ -106,3 +106,20 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   (25 files / 111 tests — unchanged; behavior preserved). diff +25/-20.
 - **Commit**: 47b684a
 - **Saturation**: none changed (readability produced V=3, not low-value).
+
+### Iteration 4 · docs · mode=explore
+- **Change**: Add a "Worked example" section to the README — the org-change story
+  end to end with the real JSON each MCP tool returns (`remember` ×2 showing
+  supersession, `recall` now vs `as_of`, `history`, `stats`). Output was captured
+  from a real deterministic StubExtractor run against the test DB (throwaway
+  capture script, then deleted), so the documented shapes/values are exact (UUIDs
+  abbreviated). 4 mod 4 == 0 → explore: docs was a least-recently-touched (never
+  touched) dimension.
+- **Net-positive**: improves docs (adopters see the exact MCP response shape —
+  the main friction for integrating an MCP server); protects correctness
+  (README-only; capture script removed; no src/test change). V=3 C=4 S=5.
+- **Files**: README.md.
+- **Verification**: ran the capture end-to-end (real tool output) · `npm run
+  typecheck` ✓ · `npm test` ✓ (25 files / 111 tests, unchanged).
+- **Commit**: 814a93c
+- **Saturation**: none changed (docs produced V=3, not low-value).
