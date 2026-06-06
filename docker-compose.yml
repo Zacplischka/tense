@@ -1,0 +1,22 @@
+# One-command Postgres for Tense: pgvector (embeddings) + pg_trgm (fuzzy entity
+# resolution) in a single instance — no separate graph database (see ADR 0001).
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: tense-pg
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: tense
+      POSTGRES_DB: tense
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tense"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - tense-pgdata:/var/lib/postgresql/data
+
+volumes:
+  tense-pgdata:

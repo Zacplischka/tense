@@ -1,0 +1,44 @@
+{
+  "name": "tense",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Temporal memory for AI agents — knows which version is true.",
+  "license": "MIT",
+  "bin": {
+    "tense": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d --wait && tsx scripts/bootstrap-db.ts",
+    "db:bootstrap": "tsx scripts/bootstrap-db.ts",
+    "db:setup": "docker compose up -d --wait && tsx scripts/bootstrap-db.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.check.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "pg": "^8.21.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "@types/pg": "^8.20.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
