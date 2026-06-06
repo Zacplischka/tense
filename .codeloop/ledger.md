@@ -166,6 +166,15 @@ priority:_
   (nothing would run it), and an Actions workflow can't be verified in this
   environment (no Actions runtime). Revisit if/when a GitHub remote exists.
 
+_Considered & rejected (iter 33, so future turns don't re-chase):_
+- A `connections`/`neighbors` MCP tool (bidirectional Current Facts for a resolved
+  Entity) — largely COVERED by `recall(entityName)` (FACT_TSVECTOR includes both
+  subject and object names, so it already returns Facts where the Entity is the
+  object), and a 9th tool overlapping recall risks agent-UX sprawl. Marginal; skip.
+- A "factless `remember`" robustness test — ALREADY covered: `sources.integration`
+  (iter 14) ingests a 250-char no-predicate Source and asserts it's recorded with
+  0 Facts. Not a gap.
+
 _Steady-state note (iter 31): the high/medium-value backlog is exhausted. The
 functionality/UX focus (user steer iter 8) is complete; the MCP surface, viewer,
 tests, lint, perf index, and 7 ADRs are in place. Remaining items are
@@ -792,3 +801,18 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   `npm test` ✓ (39 files / 174 tests, unchanged).
 - **Commit**: 83ebc18
 - **Saturation**: none changed (cruft-removal produced V=3).
+
+### Iteration 33 · — · mode=scout
+- **Outcome**: No code change. Diversify blocked cruft(32). Surveyed for a clean
+  V≥3; the two fresh candidates both collapsed on inspection: a `connections`
+  bidirectional-entity tool is ~covered by `recall(entityName)` + risks tool sprawl,
+  and a factless-`remember` test is already covered by sources.integration (iter 14).
+  Everything else remains deferred (concurrency, ADR 0007), risky/scale-only (perf),
+  speculative (CI, no remote), or V≈2 (viewer polish, Prettier). SCOUT > forcing.
+- **Findings (recorded in Backlog)**: the two considered-and-rejected candidates,
+  with reasons, so future turns don't re-chase them.
+- **Files**: none (scout) — ledger only.
+- **Verification**: n/a (no code change); tree green at start (lint ✓, 174 tests).
+- **Commit**: f32cd12 (ledger only)
+- **Saturation**: none changed; 4th scout of the run (20, 29, 31, 33) — expected at
+  steady state on a mature codebase.
