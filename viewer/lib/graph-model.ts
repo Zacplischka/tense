@@ -84,6 +84,8 @@ export interface EntityFact {
   predicate: string;
   /** "out" = the Entity is the subject; "in" = the Entity is the object. */
   direction: "out" | "in";
+  /** The counterpart Entity's id — lets the panel navigate to it (click-through). */
+  otherId: string;
   /** The counterpart Entity's display name. */
   other: string;
   current: boolean;
@@ -114,6 +116,7 @@ export function factsForEntity(snapshot: Snapshot, entityId: string): EntityFact
       id: f.id,
       predicate: f.predicate,
       direction: isSubject ? "out" : "in",
+      otherId,
       other,
       current: f.current,
       validAt: f.validAt,

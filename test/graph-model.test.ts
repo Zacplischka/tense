@@ -105,6 +105,15 @@ describe("factsForEntity", () => {
     expect(factsForEntity(noTx, "zach")[0]?.learnedAt).toBeNull();
   });
 
+  it("exposes the counterpart Entity id so the panel can navigate to it", () => {
+    const rows = factsForEntity(snapshot, "zach");
+    // Both Facts have Zach as subject, so the counterpart is the object.
+    expect(rows.map((r) => r.otherId)).toEqual(["bob", "alice"]); // Current (Bob) first
+    // direction "in" picks the subject as the counterpart.
+    const inbound = factsForEntity(snapshot, "alice");
+    expect(inbound[0]).toMatchObject({ direction: "in", otherId: "zach", other: "Zach" });
+  });
+
   it("orders Current Facts before superseded ones", () => {
     const rows = factsForEntity(snapshot, "zach");
     expect(rows.map((r) => r.current)).toEqual([true, false]);

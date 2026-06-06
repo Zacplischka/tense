@@ -382,7 +382,7 @@ export default function Page() {
               {selectedFacts.length === 0 ? (
                 <div style={{ color: "#94a3b8", fontSize: 13, padding: "10px 0" }}>No Facts touch this Entity.</div>
               ) : (
-                selectedFacts.map((f) => <FactRow key={f.id} fact={f} />)
+                selectedFacts.map((f) => <FactRow key={f.id} fact={f} onSelect={setSelectedId} />)
               )}
             </div>
           </aside>
@@ -448,7 +448,7 @@ export default function Page() {
   );
 }
 
-function FactRow({ fact }: { fact: EntityFact }) {
+function FactRow({ fact, onSelect }: { fact: EntityFact; onSelect: (id: string) => void }) {
   const arrow = fact.direction === "out" ? "→" : "←";
   const from = fact.validAt ? fact.validAt.slice(0, 10) : "—";
   const to = fact.current ? "now" : fact.invalidAt ? fact.invalidAt.slice(0, 10) : "—";
@@ -462,7 +462,25 @@ function FactRow({ fact }: { fact: EntityFact }) {
         <span style={{ color: "#94a3b8" }} title={fact.direction === "out" ? "this Entity is the subject" : "this Entity is the object"}>
           {arrow}
         </span>{" "}
-        <span style={{ color: "#4f46e5" }}>{fact.predicate}</span> <b>{fact.other}</b>
+        <span style={{ color: "#4f46e5" }}>{fact.predicate}</span>{" "}
+        <button
+          type="button"
+          onClick={() => onSelect(fact.otherId)}
+          aria-label={`Inspect ${fact.other}`}
+          style={{
+            border: "none",
+            background: "transparent",
+            padding: 0,
+            font: "inherit",
+            fontWeight: 700,
+            color: "#0f172a",
+            textDecoration: "underline",
+            textDecorationColor: "#cbd5e1",
+            cursor: "pointer",
+          }}
+        >
+          {fact.other}
+        </button>
       </div>
       <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
         {fact.current ? "Current" : "Superseded"} · valid {from} → {to}

@@ -1173,3 +1173,25 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   covered by changes/history/mcp-boundary tests). → pass.
 - **Commit**: 1fe04df
 - **Saturation**: readability active (V=3) — no flag change.
+
+### Iteration 49 · UX (viewer) · mode=exploit
+- **Change**: made the detail panel's Fact rows navigable — each Fact's counterpart
+  Entity is now a button that selects it, turning the panel into a graph-traversal
+  tool (click Zach → "reports-to Bob" → click Bob → Bob's facts). `factsForEntity`
+  already computed the counterpart id internally; exposed it as `EntityFact.otherId`
+  and wired `FactRow` to `setSelectedId`. Complements canvas node-clicking with a
+  text/keyboard path (the button is focusable + aria-labelled).
+- **Net-positive**: improves UX (explore relationships by traversing Facts; also
+  keyboard-accessible). Protects the panel display, the iter-44 focus management
+  (selecting a new entity keeps focus in the panel via the existing effect), graph
+  rendering. V=3 C=4 S=4.
+- **Why UX (non-timestamp)**: diversify blocks the last two dims (readability 48,
+  tests 47); UX is steering-primary and open (last 46). Functionality is complete
+  (8 tools, all signals surfaced), so this is a distinct UX/navigation axis.
+- **Files**: viewer/lib/graph-model.ts (EntityFact.otherId + factsForEntity sets it),
+  viewer/app/page.tsx (FactRow counterpart → button + onSelect prop; render passes
+  setSelectedId), test/graph-model.test.ts (otherId assertion, both directions).
+- **Verification**: `npm run check` → EXIT=0 (40 files / 187 tests, +1; viewer
+  typecheck + build ✓). → pass.
+- **Commit**: 6e6cc09
+- **Saturation**: UX active (V=3) — no flag change.
