@@ -1348,3 +1348,30 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Commit**: 79a9c10
 - **Saturation**: ALL flags cleared (fresh survey, iter 55) — all already 0;
   correctness/robustness active (V=3). Codebase remains mature/clean.
+
+### Iteration 56 · performance · mode=explore
+- **Change**: migration 0005 adds two transaction-time indexes on `facts` —
+  `idx_facts_created_at` and a partial `idx_facts_expired_at WHERE expired_at IS
+  NOT NULL`. The `changes` feed (incremental sync, designed for scale) filters by
+  `created_at >= since OR expired_at >= since` with no supporting index → full
+  seq-scan every poll. These let Postgres BitmapOr two index scans; `created_at`
+  also serves the newest-first orderings (browse path, history tiebreak, viewer
+  snapshot). Additive — no query/code change, results identical.
+- **Net-positive**: improves performance at scale. Protects correctness (indexes
+  don't change results), the migration chain (auto-discovered, idempotent, applied
+  in its own txn). V=3 C=4 S=5. Distinct from the DEFERRED risky perf items
+  (ivfflat = approximate/eval-risk; resolver = GUC rewrite) — a plain btree index
+  is safe and exact.
+- **Why performance on this explore turn**: explore (56%4==0) → least-recently-
+  touched eligible dim. Architecture (21) mature/no-safe-candidate; cruft (32)
+  false-positives only; DX (40) viewer-linting needs new deps+install+fixes (sprawl,
+  not clean). Performance (24) had this safe, provable index. Diversify blocks
+  correctness(55)/scout(54).
+- **Files**: migrations/0005_facts_transaction_time_index.sql (new).
+- **Verification**: `npm test` ✓ (40 files / 193 tests — globalSetup applied 0005
+  to tense_test cleanly, nothing broke). Index usability PROVEN via EXPLAIN with
+  `enable_seqscan=off` (iter-24 pattern): the changes-feed query plans a BitmapOr of
+  `Bitmap Index Scan on idx_facts_created_at` + `idx_facts_expired_at`. Throwaway
+  EXPLAIN script deleted. (No tsc/lint/build impact — .sql only.) → pass.
+- **Commit**: 5f667e3
+- **Saturation**: performance active (V=3) — no flag change.
