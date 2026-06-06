@@ -92,8 +92,10 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - ~~[functionality] Expose `limit` + `predicate` on `recall`~~ — DONE (iter 10):
   threaded through recall() + the 3 store rankers + the MCP tool; predicate
   normalized to slug.
-- [functionality] `recall`/`entities` could return `reinforcedBy`-sorted or
-  filtered views; consider a `min_reinforced` knob now that the signal exists.
+- ~~[functionality] `min_reinforced` recall knob~~ — DONE (iter 12): trust
+  threshold filtered in SQL across the 3 rankers + exposed on the MCP tool.
+- [functionality] (smaller, remaining) `reinforcedBy`-sorted recall / a `reinforcedBy`
+  tiebreak in RRF — but ranking changes touch the eval headline; treat with care.
 
 ## Log
 
@@ -304,3 +306,21 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   +1 file, +5 tests vs iter 10).
 - **Commit**: f8b295c
 - **Saturation**: none changed (UX produced V=4).
+
+### Iteration 12 · new-capability (functionality) · mode=exploit (user-steered)
+- **Change**: Add a `min_reinforced` trust filter to `recall` — return only Facts
+  asserted by ≥N Sources (the `reinforcedBy` count). Threaded `minReinforced`
+  through `recall()` and the three rankers (`rankByKeyword`/`rankBySemantic`/
+  `recallByTemporal`) as an additive clause — a correlated `count(fact_sources)
+  >= $n` filtered in SQL *before* the limit, so you still get the top matches that
+  clear the bar — and exposed `min_reinforced` on the MCP tool. Completes the
+  recall control surface (query · as_of · predicate · limit · min_reinforced).
+- **Net-positive**: improves functionality + agent UX (precision/trust-thresholded
+  recall for high-stakes use); protects correctness (optional & additive; SQL
+  byte-identical when unset; full suite + eval green). V=3 C=5 S=5.
+- **Files**: src/db/store.ts (3 rankers), src/retrieval/recall.ts, src/mcp/server.ts,
+  test/recall-min-reinforced.integration.test.ts (new), README.md.
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (31 files / 137 tests; +1 file, +5 tests vs iter 11).
+- **Commit**: 94e295a
+- **Saturation**: none changed (functionality produced V=3).

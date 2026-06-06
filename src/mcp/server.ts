@@ -62,9 +62,15 @@ export function createMcpServer(deps: RememberDeps): McpServer {
           .optional()
           .describe("Restrict to one Predicate, e.g. 'reports-to' ('Reports To' also matches)."),
         limit: z.number().int().positive().optional().describe("Max Facts to return (default 20)."),
+        min_reinforced: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe("Only Facts asserted by at least this many Sources (trust threshold)."),
       },
     },
-    async ({ query, as_of, predicate, limit }) => {
+    async ({ query, as_of, predicate, limit, min_reinforced }) => {
       const asOf = as_of ? new Date(as_of) : null;
       if (as_of && Number.isNaN(asOf!.getTime())) {
         return { content: [{ type: "text", text: `invalid as_of date: ${as_of}` }], isError: true };
@@ -72,7 +78,7 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       const facts = await recall(
         { store: deps.store, provider: deps.provider },
         query,
-        { asOf, predicate, limit },
+        { asOf, predicate, limit, minReinforced: min_reinforced },
       );
       return { content: [{ type: "text", text: JSON.stringify(facts, null, 2) }] };
     },

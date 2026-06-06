@@ -403,6 +403,7 @@ export class TemporalGraphStore {
     asOf: Date | null,
     limit = 50,
     predicate: string | null = null,
+    minReinforced: number | null = null,
   ): Promise<RecalledFact[]> {
     const lim = clampLimit(limit);
     const params: unknown[] = [];
@@ -414,6 +415,8 @@ export class TemporalGraphStore {
       clauses.push(`f.valid_at IS NOT NULL AND f.valid_at <= $${i} AND (f.invalid_at IS NULL OR f.invalid_at > $${i})`);
     }
     if (predicate) clauses.push(`f.predicate = $${params.push(predicate)}`);
+    if (minReinforced && minReinforced > 0)
+      clauses.push(`(SELECT count(*) FROM fact_sources fs WHERE fs.fact_id = f.id) >= $${params.push(minReinforced)}`);
     const order = asOf === null ? "f.created_at DESC" : "f.valid_at DESC";
     const { rows } = await this.pool.query(
       `${RECALL_SELECT} WHERE ${clauses.join(" AND ")} ORDER BY ${order} LIMIT ${lim}`,
@@ -428,6 +431,7 @@ export class TemporalGraphStore {
     asOf: Date | null,
     limit = 20,
     predicate: string | null = null,
+    minReinforced: number | null = null,
   ): Promise<string[]> {
     const lim = clampLimit(limit);
     const params: unknown[] = [formatVector(queryEmbedding)]; // $1 = query vector
@@ -439,6 +443,8 @@ export class TemporalGraphStore {
       clauses.push(`valid_at IS NOT NULL AND valid_at <= $${i} AND (invalid_at IS NULL OR invalid_at > $${i})`);
     }
     if (predicate) clauses.push(`predicate = $${params.push(predicate)}`);
+    if (minReinforced && minReinforced > 0)
+      clauses.push(`(SELECT count(*) FROM fact_sources fs WHERE fs.fact_id = facts.id) >= $${params.push(minReinforced)}`);
     const { rows } = await this.pool.query(
       `SELECT id FROM facts WHERE ${clauses.join(" AND ")} ORDER BY embedding <=> $1::vector LIMIT ${lim}`,
       params,
@@ -452,6 +458,7 @@ export class TemporalGraphStore {
     asOf: Date | null,
     limit = 20,
     predicate: string | null = null,
+    minReinforced: number | null = null,
   ): Promise<string[]> {
     const lim = clampLimit(limit);
     const params: unknown[] = [query]; // $1 = query text
@@ -463,6 +470,8 @@ export class TemporalGraphStore {
       clauses.push(`f.valid_at IS NOT NULL AND f.valid_at <= $${i} AND (f.invalid_at IS NULL OR f.invalid_at > $${i})`);
     }
     if (predicate) clauses.push(`f.predicate = $${params.push(predicate)}`);
+    if (minReinforced && minReinforced > 0)
+      clauses.push(`(SELECT count(*) FROM fact_sources fs WHERE fs.fact_id = f.id) >= $${params.push(minReinforced)}`);
     const { rows } = await this.pool.query(
       `SELECT f.id,
               ts_rank(${FACT_TSVECTOR}, plainto_tsquery('english', $1)) AS rank

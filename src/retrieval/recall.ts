@@ -17,6 +17,12 @@ export interface RecallOptions {
    * canonical slug (lowercased, spaces → hyphens) so "Reports To" also matches.
    */
   predicate?: string | null;
+  /**
+   * Only return Facts asserted by at least this many Sources (the `reinforcedBy`
+   * provenance count) — a trust threshold for high-stakes recall. Filtered in SQL
+   * before the limit, so you still get the top matches that clear the bar.
+   */
+  minReinforced?: number | null;
 }
 
 /** Canonicalize a Predicate filter to the stored slug form, or null if blank. */
@@ -43,19 +49,20 @@ export async function recall(
   const asOf = opts.asOf ?? null;
   const limit = opts.limit ?? 20;
   const predicate = normalizePredicateFilter(opts.predicate);
+  const minReinforced = opts.minReinforced && opts.minReinforced > 0 ? Math.floor(opts.minReinforced) : null;
   const q = query.trim();
 
   // Empty query: browse the temporally-filtered set, no relevance ranking.
-  if (q === "") return store.recallByTemporal(asOf, limit, predicate);
+  if (q === "") return store.recallByTemporal(asOf, limit, predicate, minReinforced);
 
   const candidateLimit = Math.max(limit * 2, 20);
-  const keyword = await store.rankByKeyword(q, asOf, candidateLimit, predicate);
+  const keyword = await store.rankByKeyword(q, asOf, candidateLimit, predicate, minReinforced);
 
   let semantic: string[] = [];
   if (provider) {
     try {
       const [embedding] = await provider.embed([q]);
-      if (embedding) semantic = await store.rankBySemantic(embedding, asOf, candidateLimit, predicate);
+      if (embedding) semantic = await store.rankBySemantic(embedding, asOf, candidateLimit, predicate, minReinforced);
     } catch {
       // semantic is best-effort; keyword + temporal filter still answer the query
     }
