@@ -89,8 +89,9 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   Remaining ideas: a header summary using `stats` (entity/source/fact counts); a
   node-click detail panel listing that Entity's Facts; reinforcedBy → link width;
   error/empty-state polish (empty state exists; error only shows in the header).
-- [functionality] Expose `limit` on the `recall` MCP tool (recall() already
-  supports it; the tool hides it) — also add an optional `predicate` filter.
+- ~~[functionality] Expose `limit` + `predicate` on `recall`~~ — DONE (iter 10):
+  threaded through recall() + the 3 store rankers + the MCP tool; predicate
+  normalized to slug.
 - [functionality] `recall`/`entities` could return `reinforcedBy`-sorted or
   filtered views; consider a `min_reinforced` knob now that the signal exists.
 
@@ -262,3 +263,24 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   reinforcedBy, reaffirmed Fact shows reinforcedBy=2.
 - **Commit**: 1fc6f5f
 - **Saturation**: none changed (UX produced V=4).
+
+### Iteration 10 · new-capability (functionality) · mode=exploit (fresh survey, user-steered)
+- **Change**: Make `recall` controllable — add a `predicate` filter and expose
+  `limit`. Threaded an optional `predicate` (normalized to the canonical slug, so
+  "Reports To" matches "reports-to") through `recall()`, the three store rankers
+  (`rankByKeyword`, `rankBySemantic`, `recallByTemporal` — rewritten to build
+  clause/param arrays so indices stay correct; SQL identical when predicate is
+  null), and the MCP `recall` tool (new `predicate` + `limit` args). `recall()`
+  already supported `limit`; the tool had hidden it.
+- **Net-positive**: improves functionality + agent UX (scoped, capped retrieval —
+  "top-N reports-to facts about X"); protects correctness (predicate is optional &
+  additive; null-predicate SQL byte-identical to before; full suite + eval green).
+  V=4 C=4 S=4.
+- **Fresh survey**: re-swept with the functionality/UX lens; codebase still clean,
+  no correctness bug. Saturation flags cleared (all 0).
+- **Files**: src/db/store.ts (3 rankers), src/retrieval/recall.ts, src/mcp/server.ts,
+  test/recall-controls.integration.test.ts (new), README.md.
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (29 files / 127 tests; +1 file, +6 tests vs iter 9).
+- **Commit**: d2da0c2
+- **Saturation**: cleared by fresh survey (all 0); functionality produced V=4.

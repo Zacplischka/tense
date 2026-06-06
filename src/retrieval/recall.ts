@@ -12,6 +12,17 @@ export interface RecallOptions {
   /** null/undefined = Current; a date = whatever was Current (valid) at that instant. */
   asOf?: Date | null;
   limit?: number;
+  /**
+   * Restrict results to a single Predicate (e.g. "reports-to"). Normalized to the
+   * canonical slug (lowercased, spaces → hyphens) so "Reports To" also matches.
+   */
+  predicate?: string | null;
+}
+
+/** Canonicalize a Predicate filter to the stored slug form, or null if blank. */
+function normalizePredicateFilter(predicate: string | null | undefined): string | null {
+  const p = predicate?.trim().toLowerCase().replace(/\s+/g, "-");
+  return p ? p : null;
 }
 
 /**
@@ -31,19 +42,20 @@ export async function recall(
   const { store, provider } = deps;
   const asOf = opts.asOf ?? null;
   const limit = opts.limit ?? 20;
+  const predicate = normalizePredicateFilter(opts.predicate);
   const q = query.trim();
 
   // Empty query: browse the temporally-filtered set, no relevance ranking.
-  if (q === "") return store.recallByTemporal(asOf, limit);
+  if (q === "") return store.recallByTemporal(asOf, limit, predicate);
 
   const candidateLimit = Math.max(limit * 2, 20);
-  const keyword = await store.rankByKeyword(q, asOf, candidateLimit);
+  const keyword = await store.rankByKeyword(q, asOf, candidateLimit, predicate);
 
   let semantic: string[] = [];
   if (provider) {
     try {
       const [embedding] = await provider.embed([q]);
-      if (embedding) semantic = await store.rankBySemantic(embedding, asOf, candidateLimit);
+      if (embedding) semantic = await store.rankBySemantic(embedding, asOf, candidateLimit, predicate);
     } catch {
       // semantic is best-effort; keyword + temporal filter still answer the query
     }

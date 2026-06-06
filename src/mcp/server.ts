@@ -48,22 +48,32 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       title: "Recall",
       description:
         "Return ranked Facts matching the query — Current by default, or whatever " +
-        "was Current at `as_of`. Each Fact includes its Source citation and " +
-        "validity interval.",
+        "was Current at `as_of`. Optionally scope to one `predicate` and cap the " +
+        "result count with `limit`. Each Fact includes its Source citation, " +
+        "validity interval, and `reinforcedBy` (how many Sources assert it).",
       inputSchema: {
         query: z.string().describe("What to recall. Empty returns the temporally-filtered set."),
         as_of: z
           .string()
           .optional()
           .describe("ISO date/time; return Facts that were Current (valid) at that instant."),
+        predicate: z
+          .string()
+          .optional()
+          .describe("Restrict to one Predicate, e.g. 'reports-to' ('Reports To' also matches)."),
+        limit: z.number().int().positive().optional().describe("Max Facts to return (default 20)."),
       },
     },
-    async ({ query, as_of }) => {
+    async ({ query, as_of, predicate, limit }) => {
       const asOf = as_of ? new Date(as_of) : null;
       if (as_of && Number.isNaN(asOf!.getTime())) {
         return { content: [{ type: "text", text: `invalid as_of date: ${as_of}` }], isError: true };
       }
-      const facts = await recall({ store: deps.store, provider: deps.provider }, query, { asOf });
+      const facts = await recall(
+        { store: deps.store, provider: deps.provider },
+        query,
+        { asOf, predicate, limit },
+      );
       return { content: [{ type: "text", text: JSON.stringify(facts, null, 2) }] };
     },
   );

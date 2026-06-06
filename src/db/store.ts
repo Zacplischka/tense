@@ -399,61 +399,77 @@ export class TemporalGraphStore {
    * returns Facts valid at that instant (`valid_at <= T AND (invalid_at IS NULL
    * OR invalid_at > T)`), per ADR 0002's point-in-time formula.
    */
-  async recallByTemporal(asOf: Date | null, limit = 50): Promise<RecalledFact[]> {
+  async recallByTemporal(
+    asOf: Date | null,
+    limit = 50,
+    predicate: string | null = null,
+  ): Promise<RecalledFact[]> {
     const lim = clampLimit(limit);
+    const params: unknown[] = [];
+    const clauses: string[] = [];
     if (asOf === null) {
-      const { rows } = await this.pool.query(
-        `${RECALL_SELECT} WHERE f.expired_at IS NULL ORDER BY f.created_at DESC LIMIT ${lim}`,
-      );
-      return rows.map(mapRecalledRow);
+      clauses.push("f.expired_at IS NULL");
+    } else {
+      const i = params.push(asOf); // 1-based index of asOf
+      clauses.push(`f.valid_at IS NOT NULL AND f.valid_at <= $${i} AND (f.invalid_at IS NULL OR f.invalid_at > $${i})`);
     }
+    if (predicate) clauses.push(`f.predicate = $${params.push(predicate)}`);
+    const order = asOf === null ? "f.created_at DESC" : "f.valid_at DESC";
     const { rows } = await this.pool.query(
-      `${RECALL_SELECT}
-       WHERE f.valid_at IS NOT NULL AND f.valid_at <= $1 AND (f.invalid_at IS NULL OR f.invalid_at > $1)
-       ORDER BY f.valid_at DESC LIMIT ${lim}`,
-      [asOf],
+      `${RECALL_SELECT} WHERE ${clauses.join(" AND ")} ORDER BY ${order} LIMIT ${lim}`,
+      params,
     );
     return rows.map(mapRecalledRow);
   }
 
   /** Rank Fact ids by semantic similarity to a query embedding, temporally filtered. */
-  async rankBySemantic(queryEmbedding: number[], asOf: Date | null, limit = 20): Promise<string[]> {
+  async rankBySemantic(
+    queryEmbedding: number[],
+    asOf: Date | null,
+    limit = 20,
+    predicate: string | null = null,
+  ): Promise<string[]> {
     const lim = clampLimit(limit);
-    const vec = formatVector(queryEmbedding);
+    const params: unknown[] = [formatVector(queryEmbedding)]; // $1 = query vector
+    const clauses = ["embedding IS NOT NULL"];
     if (asOf === null) {
-      const { rows } = await this.pool.query(
-        `SELECT id FROM facts
-         WHERE embedding IS NOT NULL AND expired_at IS NULL
-         ORDER BY embedding <=> $1::vector LIMIT ${lim}`,
-        [vec],
-      );
-      return rows.map((r) => r.id as string);
+      clauses.push("expired_at IS NULL");
+    } else {
+      const i = params.push(asOf);
+      clauses.push(`valid_at IS NOT NULL AND valid_at <= $${i} AND (invalid_at IS NULL OR invalid_at > $${i})`);
     }
+    if (predicate) clauses.push(`predicate = $${params.push(predicate)}`);
     const { rows } = await this.pool.query(
-      `SELECT id FROM facts
-       WHERE embedding IS NOT NULL
-         AND valid_at IS NOT NULL AND valid_at <= $2 AND (invalid_at IS NULL OR invalid_at > $2)
-       ORDER BY embedding <=> $1::vector LIMIT ${lim}`,
-      [vec, asOf],
+      `SELECT id FROM facts WHERE ${clauses.join(" AND ")} ORDER BY embedding <=> $1::vector LIMIT ${lim}`,
+      params,
     );
     return rows.map((r) => r.id as string);
   }
 
   /** Rank Fact ids by Postgres full-text relevance, temporally filtered. */
-  async rankByKeyword(query: string, asOf: Date | null, limit = 20): Promise<string[]> {
+  async rankByKeyword(
+    query: string,
+    asOf: Date | null,
+    limit = 20,
+    predicate: string | null = null,
+  ): Promise<string[]> {
     const lim = clampLimit(limit);
-    const temporal =
-      asOf === null
-        ? "f.expired_at IS NULL"
-        : "f.valid_at IS NOT NULL AND f.valid_at <= $2 AND (f.invalid_at IS NULL OR f.invalid_at > $2)";
-    const params: unknown[] = asOf === null ? [query] : [query, asOf];
+    const params: unknown[] = [query]; // $1 = query text
+    const clauses = [`plainto_tsquery('english', $1) @@ ${FACT_TSVECTOR}`];
+    if (asOf === null) {
+      clauses.push("f.expired_at IS NULL");
+    } else {
+      const i = params.push(asOf);
+      clauses.push(`f.valid_at IS NOT NULL AND f.valid_at <= $${i} AND (f.invalid_at IS NULL OR f.invalid_at > $${i})`);
+    }
+    if (predicate) clauses.push(`f.predicate = $${params.push(predicate)}`);
     const { rows } = await this.pool.query(
       `SELECT f.id,
               ts_rank(${FACT_TSVECTOR}, plainto_tsquery('english', $1)) AS rank
        FROM facts f
        JOIN entities subj ON subj.id = f.subject_id
        JOIN entities obj  ON obj.id  = f.object_id
-       WHERE plainto_tsquery('english', $1) @@ ${FACT_TSVECTOR} AND ${temporal}
+       WHERE ${clauses.join(" AND ")}
        ORDER BY rank DESC LIMIT ${lim}`,
       params,
     );
