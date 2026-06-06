@@ -57,6 +57,18 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     ]);
   });
 
+  it("annotates the read tools read-only and remember as non-destructive write", async () => {
+    const client = await connect(depsWith(new StubExtractor()));
+    const { tools } = await client.listTools();
+    const byName = Object.fromEntries(tools.map((t) => [t.name, t.annotations]));
+    for (const ro of ["recall", "history", "stats", "entities", "sources"]) {
+      expect(byName[ro]?.readOnlyHint).toBe(true);
+    }
+    // remember writes, but Tense never deletes — advertise that explicitly.
+    expect(byName["remember"]?.readOnlyHint).toBe(false);
+    expect(byName["remember"]?.destructiveHint).toBe(false);
+  });
+
   it("org change over MCP: remember twice, recall returns the Current Fact", async () => {
     const client = await connect(depsWith(new StubExtractor()));
 

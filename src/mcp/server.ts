@@ -27,6 +27,15 @@ export function createMcpServer(deps: RememberDeps): McpServer {
         text: z.string().min(1).describe("The text to remember."),
         source: z.string().optional().describe("Optional label for the Source (e.g. a filename)."),
       },
+      // Writes to the graph, but Tense NEVER deletes — supersession closes a Fact
+      // and retains it (destructiveHint: false). Re-ingesting adds provenance, so
+      // it is not idempotent. Operates on the local graph (openWorldHint: false).
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
     },
     async ({ text, source }) => {
       try {
@@ -69,6 +78,7 @@ export function createMcpServer(deps: RememberDeps): McpServer {
           .optional()
           .describe("Only Facts asserted by at least this many Sources (trust threshold)."),
       },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ query, as_of, predicate, limit, min_reinforced }) => {
       const asOf = as_of ? new Date(as_of) : null;
@@ -96,6 +106,7 @@ export function createMcpServer(deps: RememberDeps): McpServer {
         entity: z.string().min(1).describe("The subject Entity name (variants are resolved)."),
         predicate: z.string().optional().describe("Optional Predicate to narrow the chain."),
       },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ entity, predicate }) => {
       const chain = await history({ store: deps.store, resolver: deps.resolver }, entity, predicate);
@@ -112,6 +123,7 @@ export function createMcpServer(deps: RememberDeps): McpServer {
         "totals split Current vs superseded, and a per-Predicate breakdown. Useful " +
         'for an agent to answer "what is in my memory?" without recalling Facts.',
       inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async () => {
       try {
@@ -137,6 +149,7 @@ export function createMcpServer(deps: RememberDeps): McpServer {
         query: z.string().optional().describe("Optional name substring to filter Entities (case-insensitive)."),
         limit: z.number().int().positive().optional().describe("Max Entities to return (default 50)."),
       },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ query, limit }) => {
       try {
@@ -161,6 +174,7 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       inputSchema: {
         limit: z.number().int().positive().optional().describe("Max Sources to return (default 50)."),
       },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ limit }) => {
       try {

@@ -101,6 +101,9 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - ~~[functionality] surface entity-resolution decisions~~ — DONE (iter 17):
   `remember` now returns `entitiesResolved` (new/exact/fuzzy + similarity); fuzzy
   merges shown in the viewer status. Surfaces a hidden, consequential signal.
+- ~~[functionality] MCP tool annotations~~ — DONE (iter 18): readOnlyHint on the 5
+  read tools; remember readOnlyHint:false + destructiveHint:false (advertises the
+  never-deletes invariant). Standards-based agent-UX metadata.
 - [functionality] (smaller, remaining) `reinforcedBy`-sorted recall / a `reinforcedBy`
   tiebreak in RRF — but ranking changes touch the eval headline; treat with care.
 
@@ -432,3 +435,20 @@ scrubber. After this, remaining items really are low-value; SCOUT is likely next
   `npm test` ✓ (34 files / 155 tests; +1/+4) · viewer typecheck ✓ · viewer build ✓.
 - **Commit**: 011d882
 - **Saturation**: none changed (functionality produced V=4).
+
+### Iteration 18 · new-capability (functionality / agent-UX) · mode=exploit (user-steered)
+- **Change**: Add MCP tool annotations (standards-based metadata the SDK + clients
+  understand). The five read tools (recall/history/stats/entities/sources) declare
+  `readOnlyHint: true` so a client can auto-approve them; `remember` declares
+  `readOnlyHint: false, destructiveHint: false, idempotentHint: false` —
+  accurately advertising Tense's core never-deletes invariant (supersession
+  retains, never removes). All `openWorldHint: false` (local graph).
+- **Net-positive**: improves agent-UX/tool-metadata (clients reason about tool
+  safety; the non-destructive write property is now machine-readable); protects
+  everything (additive annotations; zero behavior change). V=3 C=4 S=5.
+- **Files**: src/mcp/server.ts, test/mcp-adapter.integration.test.ts (asserts
+  annotations surface via a real client's listTools).
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (34 files / 156 tests; +1 test vs iter 17).
+- **Commit**: af79996
+- **Saturation**: none changed (functionality produced V=3).
