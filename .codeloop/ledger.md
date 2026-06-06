@@ -25,14 +25,18 @@ they directly serve a functionality/UX change.
   bi-temporal graph on Postgres). TypeScript, ESM, Node ≥20.
 - **Package manager**: pnpm (lockfile present); `npm run <script>` also works.
 - **Verify gate** (run the subset relevant to a change):
+  - **full gate (both packages): `npm run check`** (added iter 40 — chains
+    typecheck · lint · build · test · `check:viewer`; needs Postgres up). Use
+    `npm run check:viewer` for viewer-only changes. Run the individual scripts
+    below for a fast targeted subset.
   - typecheck: `npm run typecheck`  (`tsc -p tsconfig.check.json`, noEmit, covers src+test+scripts)
   - build: `npm run build`          (`tsc -p tsconfig.json` → dist)
   - test: `npm test`                (`vitest run` — 23 files / 95 tests at bootstrap)
   - lint: `npm run lint`            (`eslint . --max-warnings 0`; added iter 7)
-  - viewer: `cd viewer && npm run typecheck && npm run build` (separate Next.js
-    package, own toolchain; not covered by the main vitest/lint gate. Note: the
-    main suite's `test/graph-model.test.ts` DOES import `viewer/lib/graph-model`,
-    so viewer type changes there ripple into the main typecheck/test.)
+  - viewer: `npm run check:viewer` (or `cd viewer && npm run typecheck && npm run build`) —
+    separate Next.js package, own toolchain; not covered by the main vitest/lint gate.
+    Note: the main suite's `test/graph-model.test.ts` DOES import `viewer/lib/graph-model`,
+    so viewer type changes there ripple into the main typecheck/test.
 - **Test prerequisites**: Postgres must be up (`pnpm db:up`; container `tense-pg`,
   pgvector/pg16 on :5432). Vitest globalSetup creates+migrates the isolated
   `tense_test` DB. Most tests are integration tests against real Postgres;
@@ -957,3 +961,26 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   `npm test` ✓ (40 files / 181 tests, +1 new). → pass.
 - **Commit**: f42f3bd
 - **Saturation**: new-capability/functionality active (V=3) — no flag change.
+
+### Iteration 40 · DX/tooling · mode=explore (fresh survey)
+- **Change**: added a unified `check` npm script that runs the FULL verify gate
+  across BOTH packages — `typecheck · lint · build · test · check:viewer` — plus a
+  standalone `check:viewer` (viewer `typecheck · build`). Scripts reference the
+  canonical per-step scripts (DRY) rather than duplicating the commands. Closes a
+  real repo-specific footgun: the viewer is a separate Next.js package outside the
+  main vitest/lint gate, so viewer changes were easy to forget; now one command
+  covers everything.
+- **Net-positive**: improves DX/tooling (one command for the whole gate; encodes
+  "what's the full gate" in package.json). Regresses nothing — additive scripts,
+  no code, no dependency. V=3 C=5 S=5.
+- **Why DX/tooling**: explore turn (40%4==0) → least-recently-touched dimension is
+  DX/tooling (untouched since iter 7); fresh survey (40%5==0) re-confirmed the gap;
+  diversify blocks functionality(39)/docs(38). No git remote → CI stays deferred.
+- **Files**: package.json (`check` + `check:viewer`), README.md (quickstart line),
+  .codeloop/ledger.md (Config gate updated to lead with `npm run check`).
+- **Verification**: ran `npm run check` end-to-end → EXIT=0; all six steps fired in
+  order (main typecheck → lint → build → test [40 files/181] → viewer typecheck →
+  viewer build [next build ✓]). → pass.
+- **Commit**: 313e656
+- **Saturation**: ALL flags cleared (fresh survey, iter 40) — all were already 0;
+  codebase remains mature/clean.

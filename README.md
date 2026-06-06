@@ -85,6 +85,7 @@ pnpm db:setup          # start Postgres (pgvector + pg_trgm) and run migrations
 cp .env.example .env   # add your OPENROUTER_API_KEY for extraction/recall
 pnpm test              # logic + integration tests against real Postgres
 pnpm build             # compile to dist/
+pnpm check             # the full verify gate: typecheck · lint · build · test, plus the viewer (typecheck · build)
 ```
 
 ### Connect it to an MCP client (Claude Code / Cursor)
