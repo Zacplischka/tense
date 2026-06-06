@@ -2,19 +2,78 @@
 
 **Temporal memory for AI agents — knows which version is true.**
 
-An MCP server that stores agent knowledge as a hand-built **bi-temporal graph on
-Postgres** and answers *which version is true now* — or *as of any past date* —
-something a plain vector store cannot. See [`CONTEXT.md`](./CONTEXT.md) for the
-domain glossary and [`docs/adr/`](./docs/adr/) for the architecture decisions
-(notably *why there is no graph database and no Graphiti*).
+Tense is an [MCP](https://modelcontextprotocol.io) server that gives an AI agent a
+memory which tracks not just *what* it was told, but *when each thing was true*.
+It stores knowledge as a hand-built **bi-temporal graph on Postgres** and answers
+*which version is current* — or *what was true as of any past date* — something a
+plain vector store cannot.
 
-## Status
+> A vector store indexes "Zach reports to Alice" and "Zach reports to Bob" with
+> near-identical embeddings and happily returns both. It has no principled way to
+> know the second **superseded** the first, when that happened, or who Zach
+> reported to last quarter. Tense does.
 
-Walking skeleton (slice 01): an MCP stdio server exposing `remember` / `recall`,
-backed by one Postgres, with a deterministic stub extractor. Supersession-shaped
-data flows through the real bi-temporal columns and the Current partial index.
-Extraction with an LLM, point-in-time `recall(as_of)`, `history`, the live
-viewer, and the eval harness follow — see [`.scratch/tense/`](./.scratch/tense/).
+## The result
+
+On point-in-time questions whose answer changed over time — the one place a
+recency-sorted vector store cannot win — measured against a **fair** vector
+baseline (same Sources, same embeddings, recency tiebreak allowed):
+
+| Metric (full gold set, live extraction) | Tense | Fair vector baseline |
+|---|---|---|
+| **Temporal-QA on point-in-time questions** | **100%** | **0%** |
+| Temporal-QA, all questions | 100% | 55% |
+| Supersession precision / recall | 100% / 100% | — |
+| False-supersession rate | 0% | — |
+| Extraction triple-F1 / valid_at accuracy | 100% / 100% | — |
+
+Reproduce with `pnpm eval`. The baseline is the strongest naive version, not a
+strawman — it just has no bi-temporal model, so for a past `as_of` it returns the
+most-recent answer and is wrong.
+
+![Live grey-out: a superseded edge dashes while the new one lights up](docs/media/greyout.gif)
+
+## How it works
+
+- **Fact** — a directed, typed relationship `subject → predicate → object`
+  (_Zach → reports-to → Alice_), the only thing that can be superseded. Every Fact
+  is **bi-temporal**: *valid time* (`valid_at`/`invalid_at` — when it was true in
+  the world) and *transaction time* (`created_at`/`expired_at` — when the system
+  held it as Current).
+- **Current** = `expired_at IS NULL`, backed by a partial index — the single
+  definition every reader (recall, viewer) uses.
+- **Supersession** closes the prior Fact (never deletes it) and opens the new one
+  in one transaction. Two trigger paths share one valid-time direction rule:
+  deterministic **cardinality** (a single-valued Predicate gets a new value — the
+  demo path) and **LLM-judged contradiction** (cross-Predicate "works-at" vs
+  "left" — the general path).
+- **Point-in-time recall** filters on valid time
+  (`valid_at <= T AND (invalid_at IS NULL OR invalid_at > T)`), so the agent can
+  ask both "who does Zach report to *now*?" and "who did he report to *last
+  quarter*?" — each answer cites the **Source** it came from.
+
+See [`CONTEXT.md`](./CONTEXT.md) for the full domain glossary.
+
+## Why Postgres — not a graph database, not Graphiti
+
+The project's thesis is building a temporal knowledge platform *from first
+principles*, so the bi-temporal supersession engine is built in-house:
+
+- **No separate graph database.** At demo scale (hundreds–thousands of Facts),
+  recursive CTEs cover any multi-hop traversal, so a graph DB earns nothing while
+  adding a second store to operate — "overlapping stores" is the first thing a
+  reviewer attacks. One Postgres holds the relational graph *and* the embeddings
+  (`pgvector`) *and* fuzzy entity resolution (`pg_trgm`).
+- **No Graphiti.** Graphiti is excellent, but delegating the differentiator to a
+  library weakens the "I built it" story and forces a Python sidecar, conflicting
+  with the TypeScript stack. Tense keeps Graphiti's best ideas (LLM-nominate →
+  temporal-gate contradiction) and **adds** a deterministic cardinality path on
+  top, so the filmed demo is reproducible: *deterministic where it must be,
+  Graphiti-grade where it counts.*
+
+Full reasoning: [ADR 0001](./docs/adr/0001-hand-built-temporal-graph-on-postgres.md),
+[ADR 0002](./docs/adr/0002-bitemporal-facts-cardinality-supersession.md),
+[ADR 0003](./docs/adr/0003-dspy-offline-prompt-optimizer.md).
 
 ## Quickstart
 
@@ -22,46 +81,94 @@ Requires Docker and Node ≥ 20 (with [pnpm](https://pnpm.io)).
 
 ```bash
 pnpm install
-pnpm db:setup     # start Postgres (pgvector) + apply migrations
-pnpm test         # logic + integration tests against real Postgres
-pnpm build        # compile to dist/
+pnpm db:setup          # start Postgres (pgvector + pg_trgm) and run migrations
+cp .env.example .env   # add your OPENROUTER_API_KEY for extraction/recall
+pnpm test              # logic + integration tests against real Postgres
+pnpm build             # compile to dist/
 ```
 
-### Talk to it over MCP (stdio)
+### Connect it to an MCP client (Claude Code / Cursor)
+
+Tense speaks MCP over stdio. Point your client at the built server:
+
+```jsonc
+{
+  "mcpServers": {
+    "tense": {
+      "command": "node",
+      "args": ["/absolute/path/to/tense/dist/server.js"],
+      "env": {
+        "TENSE_DATABASE_URL": "postgres://postgres:tense@localhost:5432/tense",
+        "OPENROUTER_API_KEY": "sk-or-...",
+        "TENSE_EXTRACTION_MODEL": "openai/gpt-4o-mini",
+        "TENSE_EMBEDDING_MODEL": "openai/text-embedding-3-small"
+      }
+    }
+  }
+}
+```
+
+Or drive it directly with the MCP Inspector:
 
 ```bash
-# real client <-> server round-trip with the MCP Inspector CLI
 npx @modelcontextprotocol/inspector --cli node dist/server.js --method tools/list
 
 npx @modelcontextprotocol/inspector --cli node dist/server.js \
   --method tools/call --tool-name remember \
-  --tool-arg 'text=[2024-01-01] Zach reports to Alice.'
+  --tool-arg 'text=On 2024-01-01, Zach started reporting to Alice.'
 
 npx @modelcontextprotocol/inspector --cli node dist/server.js \
-  --method tools/call --tool-name recall --tool-arg 'query=Zach'
+  --method tools/call --tool-name recall \
+  --tool-arg 'query=who does Zach report to' --tool-arg 'as_of=2024-03-01'
 ```
 
-To wire it into an MCP client (Claude Code, Cursor), run `node dist/server.js`
-as a stdio server with `TENSE_DATABASE_URL` set (see [`.env.example`](./.env.example)).
+### MCP tools
 
-## How it works
+| Tool | Signature | Returns |
+|---|---|---|
+| `remember` | `(text, source?)` | Facts created and superseded after extraction + supersession |
+| `recall` | `(query, as_of?)` | Ranked Facts — Current by default, or valid-at-`as_of` — each with Source + interval |
+| `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
 
-- **Fact** — a directed, typed relationship `subject → predicate → object`, the
-  only thing that can be superseded. Every Fact is **bi-temporal**: *valid time*
-  (`valid_at`/`invalid_at`, when it was true in the world) and *transaction time*
-  (`created_at`/`expired_at`, when the system held it as Current).
-- **Current** = `expired_at IS NULL` — backed by a partial index, and the single
-  definition every reader (recall, viewer) uses.
-- **Supersession** closes the prior Fact (never deletes it) and opens the new
-  one in one transaction, so no reader sees a torn state.
+### The live viewer
+
+```bash
+cd viewer && pnpm install && pnpm dev   # http://localhost:3000
+```
+
+Renders the graph from Postgres and animates Supersession: Current Facts solid,
+superseded Facts greyed/dashed, updating live as Facts change.
+
+## Models
+
+OpenRouter is the sole gateway for completions and embeddings; both models are
+user-configurable. The recorded demo runs on a frontier model; Gemma 3 4B is one
+env line away (`TENSE_EXTRACTION_MODEL=google/gemma-3-4b-it`).
 
 ## Layout
 
 ```
 migrations/        SQL migrations (one-command bootstrap)
-src/db/            Postgres pool, migration runner, temporal graph store
-src/extraction/    stub extractor (LLM extractor lands in slice 05)
-src/mcp/           MCP server (remember / recall)
-src/pipeline.ts    remember / recall orchestration
+src/db/            Postgres pool, migration runner, temporal graph store + atomic supersession
+src/supersession/  pure resolver (cardinality + valid-time direction rule), predicate registry
+src/resolution/    entity resolution (exact -> pg_trgm fuzzy -> short-name guard)
+src/extraction/    LLM extractor + static prompt assets (stub double for tests)
+src/contradiction/ LLM-judged contradiction (reuses the resolver's direction rule)
+src/retrieval/     hybrid recall (RRF + temporal filter) and history
+src/mcp/, server.ts  MCP stdio adapter and entry point
+viewer/            read-only Next.js viewer (the live grey-out)
+eval/              gold set, metrics, fair baseline, harness (pnpm eval)
 test/              logic unit tests + integration tests (real Postgres)
+docs/adr/          architecture decisions  ·  CONTEXT.md  domain glossary
 ```
+
+## Scope
+
+Single-tenant, stdio transport, local Postgres. Out of scope (deliberately):
+source-contradiction/trust-ranking (two Sources disagreeing at the *same* time),
+hosting/multi-tenancy/auth, and a viewer timeline scrubber. See the
+[PRD](./.scratch/tense/PRD.md).
+
+## License
+
+MIT.
