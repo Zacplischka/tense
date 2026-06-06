@@ -366,6 +366,37 @@ export class TemporalGraphStore {
     return rows.map(mapRecalledRow);
   }
 
+  /** All Facts (Current + superseded), with names + Source — for the eval harness. */
+  async allFacts(): Promise<RecalledFact[]> {
+    const { rows } = await this.pool.query(`${RECALL_SELECT} ORDER BY f.created_at ASC`);
+    return rows.map(mapRecalledRow);
+  }
+
+  /**
+   * Top-k Facts by cosine similarity to a query embedding over ALL Facts — NO
+   * temporal filter. This is the fair vector baseline's retrieval (slice 13): it
+   * has no bi-temporal model, so superseded Facts are eligible and it must rely
+   * on a recency tiebreak.
+   */
+  async baselineCandidates(
+    queryEmbedding: number[],
+    k = 5,
+  ): Promise<Array<{ object: string; validAt: Date | null; createdAt: Date }>> {
+    const { rows } = await this.pool.query(
+      `SELECT obj.name AS object, f.valid_at, f.created_at
+       FROM facts f JOIN entities obj ON obj.id = f.object_id
+       WHERE f.embedding IS NOT NULL
+       ORDER BY f.embedding <=> $1::vector
+       LIMIT ${clampLimit(k)}`,
+      [formatVector(queryEmbedding)],
+    );
+    return rows.map((r) => ({
+      object: r.object as string,
+      validAt: (r.valid_at as Date | null) ?? null,
+      createdAt: r.created_at as Date,
+    }));
+  }
+
   /** Load full RecalledFact details for ids (caller preserves the fused order). */
   async loadRecalledByIds(ids: string[]): Promise<Map<string, RecalledFact>> {
     if (ids.length === 0) return new Map();

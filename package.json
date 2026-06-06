@@ -19,6 +19,7 @@
     "db:setup": "docker compose up -d --wait && tsx scripts/bootstrap-db.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "eval": "tsx eval/run.ts",
     "typecheck": "tsc -p tsconfig.check.json"
   },
   "engines": {

@@ -21,3 +21,17 @@ The human-curated gold set that is the oracle for *every* quantitative claim in 
 ## Blocked by
 
 None - can start immediately (parallel with build).
+
+## Comments
+
+⚙️ **AFK-authored 2026-06-06 (HITL review/expansion pending).** Agent authored the
+set from the canonical demo; **a human should review and expand toward ~30.**
+
+- `eval/gold.ts` — 10 scenarios + an 11-item temporal-QA bank. Scenarios use a
+  `[YYYY-MM-DD]` grammar so they're deterministically stub-extractable AND natural
+  for the LLM.
+- Coverage (asserted by `test/gold.test.ts`): null `valid_at`, tied `valid_at`,
+  out-of-order ingestion, still-true (multi-valued + distinct-subject) for
+  false-supersession, cross-predicate (works-at/left, llm-only), and 5
+  point-in-time questions whose answer changed over time.
+- Each QA item has a single gold answer + names its establishing scenario.
