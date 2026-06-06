@@ -1150,3 +1150,26 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   (40 files / 186 tests). Viewer gate not run (no viewer change). → pass.
 - **Commit**: fe63c12
 - **Saturation**: tests active (V=3) — no flag change.
+
+### Iteration 48 · readability/clarity · mode=explore
+- **Change**: extracted a private `mapFactChange(row)` in store.ts (= `mapRecalledRow`
+  + `retiredAt`) and used it in both `changesSince` and `history`, which since iter 45
+  built the identical `FactChange` shape inline in two places. One construction
+  point so the two can't drift; completes the module's mapper family
+  (mapFact/mapEntity/mapSource/mapRecalledRow/mapFactChange). Tidied the now-stale
+  iter-45 inline comment.
+- **Net-positive**: improves readability/maintainability (DRY — single FactChange
+  construction; consistent with the module convention). Protects the `changes` and
+  `history` output (byte-identical mapping), correctness, the demo. V=3 C=5 S=5.
+- **Why readability on this explore turn**: explore (48%4==0) → least-recently-touched
+  eligible dimension. Architecture (21) has only a risky shared-core store split
+  (low-S, not eligible); performance (24) deferred items are risky/scale-only;
+  readability (28) had this concrete, safe DRY. Diversify blocks tests(47)/UX(46).
+  (Dead-export scan reconfirmed the iter-28 false-positive pattern — no real cruft.)
+- **Files**: src/db/store.ts (new mapFactChange; changesSince + history use it;
+  comment tidy).
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (40 files / 186 tests, unchanged — pure refactor; both call sites
+  covered by changes/history/mcp-boundary tests). → pass.
+- **Commit**: 1fe04df
+- **Saturation**: readability active (V=3) — no flag change.

@@ -189,6 +189,15 @@ function mapRecalledRow(row: Record<string, unknown>): RecalledFact {
 }
 
 /**
+ * A recall row plus its transaction-time retirement — the {@link FactChange} shape
+ * shared by the `changes` feed and `history`. One construction point so the two
+ * can't drift (mirrors the mapFact/mapEntity/mapSource/mapRecalledRow family).
+ */
+function mapFactChange(row: Record<string, unknown>): FactChange {
+  return { ...mapRecalledRow(row), retiredAt: (row.expired_at as Date | null) ?? null };
+}
+
+/**
  * Clamp an externally-supplied LIMIT to a safe integer in [1, 200]. The result
  * is string-interpolated into `LIMIT ${lim}` (Postgres rejects a parameterized
  * LIMIT in some positions), so this is the guard that keeps a caller-supplied
@@ -447,10 +456,7 @@ export class TemporalGraphStore {
        LIMIT ${lim}`,
       [since],
     );
-    return rows.map((r) => ({
-      ...mapRecalledRow(r),
-      retiredAt: (r.expired_at as Date | null) ?? null,
-    }));
+    return rows.map(mapFactChange);
   }
 
   /**
@@ -564,10 +570,10 @@ export class TemporalGraphStore {
        ORDER BY COALESCE(f.valid_at, f.created_at) ASC, f.created_at ASC`,
       params,
     );
-    // FactChange = the recall row plus `retiredAt` (expired_at): the chain is mostly
-    // retired Facts, so it carries BOTH transaction-time stamps (learnedAt from the
-    // base row, retiredAt here) — the full bi-temporal story per link.
-    return rows.map((r) => ({ ...mapRecalledRow(r), retiredAt: (r.expired_at as Date | null) ?? null }));
+    // Return FactChange (recall row + retiredAt): the chain is mostly retired Facts,
+    // so each link carries BOTH transaction-time stamps (learnedAt + retiredAt) —
+    // the full bi-temporal story, not just the valid interval.
+    return rows.map(mapFactChange);
   }
 
   /** All Facts (Current + superseded), with names + Source — for the eval harness. */
