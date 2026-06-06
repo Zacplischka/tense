@@ -84,7 +84,11 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   entity RESOLVER's `similarity() >=` fuzzy lookup (needs a GUC-safe query rewrite)
   and an ivfflat index on facts.embedding for rankBySemantic (approximate; needs
   lists tuning). Also: `isCurrent` in domain/types.ts is dead (0 refs) — tiny
-  cruft-removal candidate (V≈2 alone).
+  cruft-removal candidate (V≈2 alone). NOTE (iter 28 scan): a dead-export grep flags
+  many types (RememberSummary, RecallOptions, GraphStats, FactChange, ResolverInput,
+  …) but those are FALSE POSITIVES — used as param/return types within their own
+  module (and are public API). `isCurrent` is the only genuinely dead export. Don't
+  "remove" the others.
 
 _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - [UX] **Viewer** (`viewer/`, Next.js). DONE: rich Fact hover tooltip (iter 9);
@@ -669,3 +673,24 @@ priority:_
   aria-pressed); no automated a11y harness exists.
 - **Commit**: 04af71b
 - **Saturation**: none changed (accessibility produced V=3).
+
+### Iteration 28 · readability · mode=explore
+- **Change**: DRY the grown `src/mcp/server.ts` (8 tool handlers). Extracted three
+  module helpers — `jsonResult(value)` (the `{content:[{type:text, JSON.stringify}]}`
+  success shape), `errorResult(message)`, and `toolError(label, err)` — and applied
+  them across every handler, removing the repeated formatting + try/catch boilerplate.
+  Behavior byte-identical (same JSON output, same isError messages incl. the
+  invalid-date ones).
+- **Explore note**: 28 mod 4 == 0. Least-recently-touched dim is cruft-removal, but
+  it has no eligible candidate (only `isCurrent`, V≈2; see Backlog note — the other
+  "dead" exports are false positives). Next-most-neglected dim with a real candidate
+  is readability (last touched iter 3) → server.ts de-dup.
+- **Net-positive**: improves readability/maintainability (one place for the tool
+  result shape; ~8 handlers shrink from ~8 lines to ~3); protects correctness (the
+  product's MCP interface — behavior preserved; guarded by mcp-adapter + every
+  per-tool integration test asserting exact JSON AND isError cases). V=3 C=4 S=4.
+- **Files**: src/mcp/server.ts.
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (39 files / 174 tests, unchanged — behavior byte-identical).
+- **Commit**: 12acd5c
+- **Saturation**: none changed (readability produced V=3).

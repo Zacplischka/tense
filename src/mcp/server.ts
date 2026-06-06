@@ -6,13 +6,32 @@ import { recall } from "../retrieval/recall.js";
 import { history } from "../retrieval/history.js";
 
 /**
- * Build the Tense MCP server over the ingest dependencies. Slice 01 exposed
- * `remember`/`recall`; slices 09/10 add `recall(as_of?)` and `history`.
+ * Build the Tense MCP server over the ingest dependencies. Exposes the write/
+ * preview path (`remember`, `preview`), the bi-temporal query surface (`recall`
+ * by valid time, `changes` by transaction time, `history`), and introspection
+ * (`stats`, `entities`, `sources`).
  *
  * Tool results are JSON text so any MCP client can read them and the Inspector
  * CLI round-trip is inspectable. Errors are returned as `isError` results rather
- * than thrown, so a bad extraction never takes the server down.
+ * than thrown, so a bad extraction never takes the server down. The `jsonResult`
+ * / `toolError` helpers keep that result shape in one place across the tools.
  */
+
+/** A tool result whose body is the value pretty-printed as JSON text. */
+function jsonResult(value: unknown) {
+  return { content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] };
+}
+
+/** A tool error result carrying a plain message. */
+function errorResult(message: string) {
+  return { content: [{ type: "text" as const, text: message }], isError: true };
+}
+
+/** A tool error result for a thrown error: `<label> failed: <message>`. */
+function toolError(label: string, err: unknown) {
+  return errorResult(`${label} failed: ${err instanceof Error ? err.message : String(err)}`);
+}
+
 export function createMcpServer(deps: RememberDeps): McpServer {
   const server = new McpServer({ name: "tense", version: "0.1.0" });
 
@@ -40,14 +59,9 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
     async ({ text, source }) => {
       try {
-        const summary = await remember(deps, text, source ?? null);
-        return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
+        return jsonResult(await remember(deps, text, source ?? null));
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return {
-          content: [{ type: "text", text: `remember failed: ${message}` }],
-          isError: true,
-        };
+        return toolError("remember", err);
       }
     },
   );
@@ -68,11 +82,9 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
     async ({ text }) => {
       try {
-        const plan = await previewRemember(deps, text);
-        return { content: [{ type: "text", text: JSON.stringify(plan, null, 2) }] };
+        return jsonResult(await previewRemember(deps, text));
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `preview failed: ${message}` }], isError: true };
+        return toolError("preview", err);
       }
     },
   );
@@ -108,15 +120,13 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
     async ({ query, as_of, predicate, limit, min_reinforced }) => {
       const asOf = as_of ? new Date(as_of) : null;
-      if (as_of && Number.isNaN(asOf!.getTime())) {
-        return { content: [{ type: "text", text: `invalid as_of date: ${as_of}` }], isError: true };
-      }
+      if (as_of && Number.isNaN(asOf!.getTime())) return errorResult(`invalid as_of date: ${as_of}`);
       const facts = await recall(
         { store: deps.store, provider: deps.provider },
         query,
         { asOf, predicate, limit, minReinforced: min_reinforced },
       );
-      return { content: [{ type: "text", text: JSON.stringify(facts, null, 2) }] };
+      return jsonResult(facts);
     },
   );
 
@@ -135,8 +145,7 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ entity, predicate }) => {
-      const chain = await history({ store: deps.store, resolver: deps.resolver }, entity, predicate);
-      return { content: [{ type: "text", text: JSON.stringify(chain, null, 2) }] };
+      return jsonResult(await history({ store: deps.store, resolver: deps.resolver }, entity, predicate));
     },
   );
 
@@ -157,15 +166,11 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
     async ({ since, limit }) => {
       const sinceDate = new Date(since);
-      if (Number.isNaN(sinceDate.getTime())) {
-        return { content: [{ type: "text", text: `invalid since date: ${since}` }], isError: true };
-      }
+      if (Number.isNaN(sinceDate.getTime())) return errorResult(`invalid since date: ${since}`);
       try {
-        const changes = await deps.store.changesSince(sinceDate, limit);
-        return { content: [{ type: "text", text: JSON.stringify(changes, null, 2) }] };
+        return jsonResult(await deps.store.changesSince(sinceDate, limit));
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `changes failed: ${message}` }], isError: true };
+        return toolError("changes", err);
       }
     },
   );
@@ -183,11 +188,9 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
     async () => {
       try {
-        const stats = await deps.store.graphStats();
-        return { content: [{ type: "text", text: JSON.stringify(stats, null, 2) }] };
+        return jsonResult(await deps.store.graphStats());
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `stats failed: ${message}` }], isError: true };
+        return toolError("stats", err);
       }
     },
   );
@@ -209,11 +212,9 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
     async ({ query, limit }) => {
       try {
-        const entities = await deps.store.listEntities({ query, limit });
-        return { content: [{ type: "text", text: JSON.stringify(entities, null, 2) }] };
+        return jsonResult(await deps.store.listEntities({ query, limit }));
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `entities failed: ${message}` }], isError: true };
+        return toolError("entities", err);
       }
     },
   );
@@ -234,11 +235,9 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
     async ({ limit }) => {
       try {
-        const sources = await deps.store.listSources({ limit });
-        return { content: [{ type: "text", text: JSON.stringify(sources, null, 2) }] };
+        return jsonResult(await deps.store.listSources({ limit }));
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `sources failed: ${message}` }], isError: true };
+        return toolError("sources", err);
       }
     },
   );
