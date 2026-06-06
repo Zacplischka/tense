@@ -89,6 +89,16 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   …) but those are FALSE POSITIVES — used as param/return types within their own
   module (and are public API). `isCurrent` is the only genuinely dead export. Don't
   "remove" the others.
+- [correctness/concurrency] FOUND iter 29, NOT fixed (no clean/safe fix): the ingest
+  path reads `currentFactsFor` then inserts in a separate step, with no DB-level
+  guard — so two CONCURRENT `remember`s on the same (subject, single-valued
+  predicate) could each see "no current Fact" and both insert, leaving two Current
+  Facts (cardinality-invariant violation). NOT triggered by the stdio MCP server
+  (single client, serial) or the single-user viewer. A blanket `UNIQUE … WHERE
+  expired_at IS NULL` is WRONG (multi-valued predicates legitimately have many
+  current Facts; cardinality is app-level, not in the schema). Real fixes (per-
+  subject `pg_advisory_xact_lock`, or a per-predicate partial unique index) touch
+  the demo-critical write path for a non-triggered race → deferred, not forced.
 
 _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - [UX] **Viewer** (`viewer/`, Next.js). DONE: rich Fact hover tooltip (iter 9);
@@ -694,3 +704,20 @@ priority:_
   `npm test` ✓ (39 files / 174 tests, unchanged — behavior byte-identical).
 - **Commit**: 12acd5c
 - **Saturation**: none changed (readability produced V=3).
+
+### Iteration 29 · — · mode=scout
+- **Outcome**: No code change. Diversify blocked accessibility(27)/readability(28);
+  surveyed the rest and nothing cleared the net-positive bar without forcing:
+  new-capability would be speculative sprawl (the query/write/introspection surface
+  is complete); UX (stats-header / error banner), cruft (`isCurrent`), DX (Prettier)
+  are all V≈2; perf is risky (resolver rewrite) or scale-only (ivfflat); and the one
+  real correctness finding (a concurrent-ingest race) isn't triggered in
+  single-client usage and has no clean/safe fix. Per the hard rules, SCOUT > forcing.
+- **Finding (recorded in Backlog)**: concurrent `remember`s on the same single-valued
+  (subject, predicate) can both insert a Current Fact (read-then-insert isn't atomic;
+  no DB guard, and a blanket unique index would break multi-valued predicates).
+  Latent, non-triggered; fix touches the demo-critical write path → deferred.
+- **Files**: none (scout) — ledger only.
+- **Verification**: n/a (no code change); tree green at start (lint ✓, 174 tests).
+- **Commit**: 085d1df (ledger only)
+- **Saturation**: none changed (no dimension acted on).
