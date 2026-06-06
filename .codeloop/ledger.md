@@ -99,6 +99,9 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   current Facts; cardinality is app-level, not in the schema). Real fixes (per-
   subject `pg_advisory_xact_lock`, or a per-predicate partial unique index) touch
   the demo-critical write path for a non-triggered race → deferred, not forced.
+  DOCUMENTED in `docs/adr/0007-ingest-assumes-a-single-writer.md` (iter 30) — the
+  single-writer assumption + why the naive fixes are wrong + the fix path if an
+  always-on/multi-client ingest stream makes concurrency real.
 
 _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - [UX] **Viewer** (`viewer/`, Next.js). DONE: rich Fact hover tooltip (iter 9);
@@ -721,3 +724,25 @@ priority:_
 - **Verification**: n/a (no code change); tree green at start (lint ✓, 174 tests).
 - **Commit**: 085d1df (ledger only)
 - **Saturation**: none changed (no dimension acted on).
+
+### Iteration 30 · docs · mode=exploit
+- **Change**: Add `docs/adr/0007-ingest-assumes-a-single-writer.md` — records the
+  ingest concurrency model: `remember` reads `currentFactsFor` then writes in a
+  separate transaction with no DB guard, so concurrent same-subject single-valued
+  ingest can violate the cardinality invariant (the iter-29 finding). Documents the
+  single-writer assumption (today's stdio/viewer entry points are serial; the
+  always-on session hook is the scenario to watch), WHY the naive fixes are wrong
+  (blanket unique index breaks multi-valued; the atomic read+decide+write fix fights
+  the store/policy separation, ADR 0001/0002), and the real fix path (per-subject
+  advisory lock held by the pipeline). Promotes the finding from the loop's backlog
+  into the project's maintained decision log (docs/adr, per CLAUDE.md).
+- **Net-positive**: improves docs (records a real, load-bearing architectural
+  assumption; prevents both ignoring the race and force-fixing it wrongly); protects
+  all code axes (docs-only). V=3 C=5 S=5. Diversifies off readability(28); avoids a
+  2nd consecutive scout by capturing genuine value from iter 29's finding.
+- **Files**: docs/adr/0007-ingest-assumes-a-single-writer.md (new).
+- **Verification**: docs-only; claims verified against the code (separate read/write
+  txns; non-unique `idx_facts_current`; store holds no policy). `npm run lint` ✓
+  (code unchanged); full suite not run (markdown-only addition).
+- **Commit**: 6b15180
+- **Saturation**: none changed (docs produced V=3).
