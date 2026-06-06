@@ -15,7 +15,16 @@ export interface OpenRouterOptions {
   baseUrl?: string;
   /** Injectable for tests — defaults to global fetch. */
   fetchImpl?: typeof fetch;
+  /** Retries for transient failures (429 / 5xx / network). Default 2 (3 attempts). */
+  maxRetries?: number;
+  /** Base backoff in ms; doubled per attempt (250 → 500 …). Default 250; set 0 in tests. */
+  retryDelayMs?: number;
 }
+
+/** HTTP statuses worth retrying — rate limiting and transient server errors. */
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Thin OpenRouter (OpenAI-compatible) client for completions and embeddings.
@@ -27,6 +36,8 @@ export class OpenRouterClient implements ProviderClient {
   private readonly completionModel: string;
   private readonly embeddingModel: string;
   private readonly fetchImpl: typeof fetch;
+  private readonly maxRetries: number;
+  private readonly retryDelayMs: number;
 
   constructor(opts: OpenRouterOptions) {
     this.apiKey = opts.apiKey;
@@ -34,6 +45,8 @@ export class OpenRouterClient implements ProviderClient {
     this.completionModel = opts.defaultCompletionModel;
     this.embeddingModel = opts.defaultEmbeddingModel;
     this.fetchImpl = opts.fetchImpl ?? fetch;
+    this.maxRetries = opts.maxRetries ?? 2;
+    this.retryDelayMs = opts.retryDelayMs ?? 250;
   }
 
   async complete(req: CompletionRequest): Promise<CompletionResult> {
@@ -69,19 +82,41 @@ export class OpenRouterClient implements ProviderClient {
   }
 
   private async post(path: string, body: unknown): Promise<any> {
-    const res = await this.fetchImpl(`${this.baseUrl}${path}`, {
+    const init: RequestInit = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(body),
-    });
-    if (!res.ok) {
+    };
+
+    // Retry transient failures (rate limits, 5xx, network blips) with exponential
+    // backoff. A 429 mid-extraction would otherwise fail a whole `remember`; this
+    // makes live ingestion/recall resilient. Non-transient errors (4xx auth/bad
+    // request) throw immediately — retrying them is pointless.
+    for (let attempt = 0; ; attempt++) {
+      let res: Response;
+      try {
+        res = await this.fetchImpl(`${this.baseUrl}${path}`, init);
+      } catch (err) {
+        if (attempt < this.maxRetries) {
+          await sleep(this.retryDelayMs * 2 ** attempt);
+          continue;
+        }
+        throw err; // network error, retries exhausted
+      }
+
+      if (res.ok) return res.json();
+
+      if (RETRYABLE_STATUS.has(res.status) && attempt < this.maxRetries) {
+        await sleep(this.retryDelayMs * 2 ** attempt);
+        continue;
+      }
+
       const detail = await res.text().catch(() => "");
       throw new Error(`OpenRouter ${path} failed: HTTP ${res.status} ${detail.slice(0, 300)}`);
     }
-    return res.json();
   }
 }
 

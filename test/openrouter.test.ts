@@ -34,8 +34,12 @@ function client(fetchImpl: typeof fetch) {
     defaultCompletionModel: "default/model",
     defaultEmbeddingModel: "default/embed",
     fetchImpl,
+    retryDelayMs: 0, // no real backoff sleeps in tests
   });
 }
+
+const okCompletion = () =>
+  new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 });
 
 describe("OpenRouterClient", () => {
   it("honors the configured model and a per-call override (Gemma-is-one-line-away)", async () => {
@@ -81,6 +85,53 @@ describe("OpenRouterClient", () => {
     const failing = (async () =>
       new Response("rate limited", { status: 429 })) as unknown as typeof fetch;
     await expect(client(failing).complete({ prompt: "hi" })).rejects.toThrow(/HTTP 429/);
+  });
+
+  it("retries a transient 429, then succeeds", async () => {
+    let n = 0;
+    const fetchImpl = (async () => {
+      n++;
+      return n === 1 ? new Response("rate limited", { status: 429 }) : okCompletion();
+    }) as unknown as typeof fetch;
+
+    const res = await client(fetchImpl).complete({ prompt: "hi" });
+    expect(res.text).toBe("ok");
+    expect(n).toBe(2); // one retry, then success
+  });
+
+  it("gives up after maxRetries on a persistent 429 (3 attempts)", async () => {
+    let n = 0;
+    const fetchImpl = (async () => {
+      n++;
+      return new Response("rate limited", { status: 429 });
+    }) as unknown as typeof fetch;
+
+    await expect(client(fetchImpl).complete({ prompt: "hi" })).rejects.toThrow(/HTTP 429/);
+    expect(n).toBe(3); // initial attempt + 2 retries
+  });
+
+  it("does NOT retry a non-transient error (401 auth)", async () => {
+    let n = 0;
+    const fetchImpl = (async () => {
+      n++;
+      return new Response("unauthorized", { status: 401 });
+    }) as unknown as typeof fetch;
+
+    await expect(client(fetchImpl).complete({ prompt: "hi" })).rejects.toThrow(/HTTP 401/);
+    expect(n).toBe(1); // failed fast, no retry
+  });
+
+  it("retries a network error (fetch throws), then succeeds", async () => {
+    let n = 0;
+    const fetchImpl = (async () => {
+      n++;
+      if (n === 1) throw new Error("ECONNRESET");
+      return okCompletion();
+    }) as unknown as typeof fetch;
+
+    const res = await client(fetchImpl).complete({ prompt: "hi" });
+    expect(res.text).toBe("ok");
+    expect(n).toBe(2); // retried the transport error
   });
 
   it("createProvider throws a clear error when the API key is missing", () => {

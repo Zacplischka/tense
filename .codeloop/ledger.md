@@ -1195,3 +1195,30 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   typecheck + build ✓). → pass.
 - **Commit**: 6e6cc09
 - **Saturation**: UX active (V=3) — no flag change.
+
+### Iteration 50 · correctness/robustness · mode=exploit (fresh survey)
+- **Change**: `OpenRouterClient.post` now retries transient failures (HTTP
+  429/500/502/503/504 and network/transport errors) with exponential backoff
+  (default 2 retries, 250ms→500ms; injectable `maxRetries`/`retryDelayMs`).
+  Non-transient errors (401/400/…) still throw immediately. Previously a single
+  429 mid-extraction failed a whole `remember` (losing that memory); recall already
+  degraded to keyword (embed is best-effort) but extraction did not.
+- **Net-positive**: improves correctness/robustness on the LIVE LLM path (reliable
+  ingestion/recall under rate limits & blips). Protects the success path (returns
+  immediately, no extra calls), non-transient errors (no retry — tested), and test
+  determinism (retryDelayMs=0 in the test helper). V=3 C=4 S=4.
+- **Fresh survey**: looked away from the recent viewer/store cluster — session-hook
+  (a Python verify script, out of MCP scope), config/env (clean), and the provider
+  (untouched since iter 5). The provider's missing retry was the clearest
+  non-obvious robustness gap. Saturation flags cleared (all already 0).
+- **Why this dimension**: diversify blocks the last two (UX 49, readability 48);
+  robustness on the live path serves the steering's functionality goal (reliable
+  remember/recall) without being a timestamp repeat.
+- **Files**: src/provider/openrouter.ts (retry loop + maxRetries/retryDelayMs opts +
+  RETRYABLE_STATUS/sleep), test/openrouter.test.ts (+4: retry-then-succeed,
+  give-up-after-maxRetries, no-retry-on-401, retry-on-network-error; helper delay 0).
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (40 files / 191 tests, +4). Viewer gate not run (no viewer change). → pass.
+- **Commit**: 89c34d7
+- **Saturation**: ALL flags cleared (fresh survey, iter 50) — all already 0;
+  correctness/robustness active (V=3). Codebase remains mature/clean.
