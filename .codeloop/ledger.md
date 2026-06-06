@@ -1425,3 +1425,23 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   typecheck + build ✓). → pass.
 - **Commit**: c27efa1
 - **Saturation**: UX active (V=3) — no flag change.
+
+### Iteration 59 · accessibility · mode=exploit
+- **Change**: the entity-index filter's result count now lives in a
+  `role="status" aria-live="polite"` region (moved out of the `<label>`), so
+  screen-reader users hear "1 of 12" as they type — previously the count changed
+  silently (WCAG 4.1.3 Status Messages). Matches the ingest-status convention
+  (iter 37). Closes backlog #4.
+- **Net-positive**: improves accessibility (completes the iter-46 filter's SR
+  support; serves the steering's UX surface). Protects the input's accessible name
+  (label stays associated, now just "Entities — select to inspect") and the visual
+  layout (count still inline before the right-aligned input). V=3 C=5 S=5.
+- **Why a11y**: diversify blocks the last two dims (UX 58, functionality 57); a11y
+  (last 44) serves UX without being UX-labelled, and the viewer has standing a11y
+  investment (16/27/44) this completes.
+- **Files**: viewer/app/page.tsx (filter count → aria-live status span).
+- **Verification**: `npm run check:viewer` → EXIT=0 (tsc --noEmit ✓, next build ✓).
+  Viewer-only; no component-test harness for SR/ARIA, so verified via typecheck +
+  build + correct ARIA usage, per the established viewer-a11y pattern (16/27/44). → pass.
+- **Commit**: ad61461
+- **Saturation**: accessibility active (V=3) — no flag change.

@@ -396,8 +396,14 @@ export default function Page() {
         <nav aria-label="Entities" style={{ marginTop: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <label htmlFor="entity-filter" style={{ fontSize: 12, color: "#94a3b8" }}>
-              Entities ({entityQuery ? `${visibleEntities.length} of ${snapshot.entities.length}` : snapshot.entities.length}) — select to inspect
+              Entities — select to inspect
             </label>
+            {/* aria-live so screen-reader users hear the filtered count change as
+                they type (WCAG 4.1.3). Kept out of the <label> so it doesn't churn
+                the input's accessible name. */}
+            <span role="status" aria-live="polite" style={{ fontSize: 12, color: "#94a3b8" }}>
+              {entityQuery ? `${visibleEntities.length} of ${snapshot.entities.length}` : `${snapshot.entities.length}`}
+            </span>
             <input
               id="entity-filter"
               type="search"
