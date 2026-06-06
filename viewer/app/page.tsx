@@ -344,6 +344,43 @@ export default function Page() {
           </aside>
         )}
       </div>
+
+      {/* Keyboard/screen-reader path into the graph: the canvas isn't focusable, so
+          this focusable, name-sorted index lets any user select an Entity (opening
+          the same detail panel + ringing its node). */}
+      {snapshot.entities.length > 0 && (
+        <nav aria-label="Entities" style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>
+            Entities ({snapshot.entities.length}) — select to inspect
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 120, overflowY: "auto" }}>
+            {[...snapshot.entities]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((e) => {
+                const on = e.id === selectedId;
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setSelectedId(on ? null : e.id)}
+                    style={{
+                      fontSize: 13,
+                      padding: "3px 10px",
+                      borderRadius: 999,
+                      border: `1px solid ${on ? "#4f46e5" : "#cbd5e1"}`,
+                      background: on ? "#eef2ff" : "#ffffff",
+                      color: on ? "#4338ca" : "#334155",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {e.name}
+                  </button>
+                );
+              })}
+          </div>
+        </nav>
+      )}
     </main>
   );
 }

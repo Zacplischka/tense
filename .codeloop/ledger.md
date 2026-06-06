@@ -91,8 +91,10 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   node-click detail panel (iter 11); reinforcedBy → link width (iter 13);
   point-in-time as-of scrubber (iter 15, via pure `snapshotAsOf`) — the headline
   bi-temporal capability made visual; accessibility pass (iter 16: textarea label,
-  aria-live status, graph role=img+label, panel landmark). Remaining (lower value):
-  a header summary using `stats`; error-state polish (error only shows in header).
+  aria-live status, graph role=img+label, panel landmark); keyboard/AT entity index
+  (iter 27 — focusable name-sorted chips below the graph open the detail panel, the
+  first keyboard path into the canvas). Remaining (lower value): a header summary
+  using `stats`; error-state polish (error only shows in header).
 - ~~[functionality] Expose `limit` + `predicate` on `recall`~~ — DONE (iter 10):
   threaded through recall() + the 3 store rankers + the MCP tool; predicate
   normalized to slug.
@@ -648,3 +650,22 @@ priority:_
   deleted). `npm run lint` ✓ (code unchanged); full suite not run (markdown-only).
 - **Commit**: 7ac4be4
 - **Saturation**: none changed (docs produced V=3).
+
+### Iteration 27 · accessibility (UX) · mode=exploit
+- **Change**: Add a keyboard-/screen-reader-navigable entity index to the viewer —
+  a labeled `<nav aria-label="Entities">` of focusable, name-sorted chip `<button>`s
+  below the graph; selecting one (click or Tab+Enter) opens the existing detail
+  panel and rings its node, with `aria-pressed` conveying selection. Closes the
+  mouse-only gap: the `<canvas>` graph isn't focusable, so keyboard/AT users
+  previously had NO interactive path to inspect an Entity (iter 16 added only a
+  summary label). Reuses `selectedId`/`setSelectedId` + the panel; additive.
+- **Net-positive**: improves accessibility + UX (first keyboard path into the
+  graph; also a fast name-based index for everyone); protects existing behavior
+  (additive section; graph/panel/selection unchanged). V=3 C=4 S=4.
+- **Files**: viewer/app/page.tsx.
+- **Verification**: viewer `npm run typecheck` ✓ · viewer `npm run build` ✓ · main
+  `npm run lint` ✓ · `npm test` ✓ (39 files / 174, unchanged — page.tsx not in the
+  main suite). a11y/keyboard verified by reasoning (native buttons + nav landmark +
+  aria-pressed); no automated a11y harness exists.
+- **Commit**: 04af71b
+- **Saturation**: none changed (accessibility produced V=3).
