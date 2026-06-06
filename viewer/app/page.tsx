@@ -399,6 +399,9 @@ function FactRow({ fact }: { fact: EntityFact }) {
   const arrow = fact.direction === "out" ? "→" : "←";
   const from = fact.validAt ? fact.validAt.slice(0, 10) : "—";
   const to = fact.current ? "now" : fact.invalidAt ? fact.invalidAt.slice(0, 10) : "—";
+  // Transaction time — when the system learned the Fact (the other bi-temporal
+  // axis); distinct from the valid interval above.
+  const learned = fact.learnedAt ? ` · learned ${fact.learnedAt.slice(0, 10)}` : "";
   const sources = fact.reinforcedBy > 0 ? ` · ${fact.reinforcedBy} source${fact.reinforcedBy === 1 ? "" : "s"}` : "";
   return (
     <div style={{ padding: "8px 0", borderBottom: "1px solid #f1f5f9", opacity: fact.current ? 1 : 0.6 }}>
@@ -410,6 +413,7 @@ function FactRow({ fact }: { fact: EntityFact }) {
       </div>
       <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
         {fact.current ? "Current" : "Superseded"} · valid {from} → {to}
+        {learned}
         {sources}
       </div>
     </div>

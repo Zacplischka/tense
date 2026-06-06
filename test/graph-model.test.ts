@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { factLinkWidth, toGraphData, type Snapshot } from "../viewer/lib/graph-model.js";
+import { factLinkWidth, factsForEntity, toGraphData, type Snapshot } from "../viewer/lib/graph-model.js";
 
 const entities = [
   { id: "zach", name: "Zach" },
@@ -77,5 +77,36 @@ describe("factLinkWidth", () => {
 
   it("treats a degenerate 0/<1 count as the base width", () => {
     expect(factLinkWidth(true, 0)).toBe(1.4);
+  });
+});
+
+describe("factsForEntity", () => {
+  const snapshot: Snapshot = {
+    entities,
+    facts: [
+      { id: "f1", subjectId: "zach", predicate: "reports-to", objectId: "alice", current: false, validAt: "2024-01-01", invalidAt: "2024-06-01", reinforcedBy: 1, learnedAt: "2025-09-12T18:04:51.880Z" },
+      { id: "f2", subjectId: "zach", predicate: "reports-to", objectId: "bob", current: true, validAt: "2024-06-01", invalidAt: null, reinforcedBy: 2, learnedAt: "2025-09-12T18:04:53.217Z" },
+    ],
+  };
+
+  it("carries learnedAt (transaction time) through to the detail panel rows", () => {
+    const rows = factsForEntity(snapshot, "zach");
+    expect(rows.map((r) => r.learnedAt)).toEqual([
+      "2025-09-12T18:04:53.217Z", // f2 (Current) sorts first
+      "2025-09-12T18:04:51.880Z", // f1 (superseded)
+    ]);
+  });
+
+  it("defaults learnedAt to null when the snapshot omits it", () => {
+    const noTx: Snapshot = {
+      entities,
+      facts: [{ id: "f1", subjectId: "zach", predicate: "knows", objectId: "alice", current: true, validAt: null, invalidAt: null }],
+    };
+    expect(factsForEntity(noTx, "zach")[0]?.learnedAt).toBeNull();
+  });
+
+  it("orders Current Facts before superseded ones", () => {
+    const rows = factsForEntity(snapshot, "zach");
+    expect(rows.map((r) => r.current)).toEqual([true, false]);
   });
 });

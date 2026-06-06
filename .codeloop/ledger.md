@@ -984,3 +984,29 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Commit**: 313e656
 - **Saturation**: ALL flags cleared (fresh survey, iter 40) — all were already 0;
   codebase remains mature/clean.
+
+### Iteration 41 · UX (viewer) · mode=exploit
+- **Change**: surfaced `learnedAt` (transaction time) in the viewer's entity detail
+  panel — the human-facing parallel to iter 39 (which added it to the recall API).
+  The snapshot now also selects `f.created_at`; `SnapshotFact`/`EntityFact` carry
+  `learnedAt`; `FactRow` shows "… · learned YYYY-MM-DD" next to the valid interval,
+  so the bi-temporal distinction (true-in-world vs when-the-system-learned-it) is
+  visible in the UI. Mirrors iter 37 (which surfaced the supersession `reason`).
+- **Net-positive**: improves UX (viewer) — makes the system's core "other axis"
+  visible where a human inspects Facts. Also fills a test gap: `factsForEntity` was
+  imported by the app but untested in the main suite; now has a `describe` block.
+  Protects the graph/as-of rendering (learnedAt is additive; `toGraphData` and
+  `snapshotAsOf` ignore it) and correctness. V=3 C=4 S=5.
+- **Why UX**: diversify blocks the last two dims (DX 40, functionality 39); UX
+  (37) is open and is the steering's primary focus.
+- **Design / blast radius**: `learnedAt` optional on `SnapshotFact` (matches the
+  optional `reinforcedBy` style) so toGraphData test fixtures stay terse; required
+  (nullable) on `EntityFact`. snapshot query +1 column. No API/store change.
+- **Files**: viewer/lib/snapshot.ts (select created_at + map), viewer/lib/graph-model.ts
+  (SnapshotFact/EntityFact + factsForEntity), viewer/app/page.tsx (FactRow renders
+  learned date), test/graph-model.test.ts (new factsForEntity describe: learnedAt
+  flow, null default, Current-first order).
+- **Verification**: `npm run check` → EXIT=0 (40 files / 184 tests, +3 new; viewer
+  typecheck + build ✓). → pass.
+- **Commit**: 16fbde2
+- **Saturation**: UX active (V=3) — no flag change.

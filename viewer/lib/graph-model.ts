@@ -26,6 +26,12 @@ export interface SnapshotFact {
   object?: string;
   /** Distinct Sources asserting this Fact (origin + Reaffirmations, ADR 0005). */
   reinforcedBy?: number;
+  /**
+   * Transaction time (created_at) — when the system learned the Fact; the other
+   * bi-temporal axis from validAt/invalidAt (when it was true). Optional so
+   * pure-mapping tests stay terse.
+   */
+  learnedAt?: string;
 }
 
 export interface Snapshot {
@@ -84,6 +90,8 @@ export interface EntityFact {
   validAt: string | null;
   invalidAt: string | null;
   reinforcedBy: number;
+  /** Transaction time (when the system learned it); null if the snapshot omits it. */
+  learnedAt: string | null;
 }
 
 /**
@@ -111,6 +119,7 @@ export function factsForEntity(snapshot: Snapshot, entityId: string): EntityFact
       validAt: f.validAt,
       invalidAt: f.invalidAt,
       reinforcedBy: f.reinforcedBy ?? 0,
+      learnedAt: f.learnedAt ?? null,
     });
   }
   rows.sort((a, b) => {

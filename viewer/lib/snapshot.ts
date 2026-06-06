@@ -33,7 +33,7 @@ export async function fetchSnapshot(): Promise<Snapshot> {
     );
     const facts = await client.query(
       `SELECT f.id, f.subject_id, f.predicate, f.object_id,
-              (f.expired_at IS NULL) AS current, f.valid_at, f.invalid_at,
+              (f.expired_at IS NULL) AS current, f.valid_at, f.invalid_at, f.created_at,
               subj.name AS subject_name, obj.name AS object_name,
               (SELECT count(*)::int FROM fact_sources fs WHERE fs.fact_id = f.id) AS reinforced_by
        FROM facts f
@@ -56,6 +56,7 @@ export async function fetchSnapshot(): Promise<Snapshot> {
         subject: r.subject_name as string,
         object: r.object_name as string,
         reinforcedBy: (r.reinforced_by as number) ?? 0,
+        learnedAt: r.created_at ? new Date(r.created_at).toISOString() : undefined,
       })),
     };
   } catch (err) {
