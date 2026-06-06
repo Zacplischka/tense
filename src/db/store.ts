@@ -82,6 +82,11 @@ export function normalizeName(name: string): string {
   return name.trim().toLowerCase();
 }
 
+/** Render a number[] as a pgvector literal: [0.1,0.2,...]. */
+export function formatVector(embedding: number[]): string {
+  return `[${embedding.join(",")}]`;
+}
+
 /**
  * Postgres persistence for the temporal graph. Owns the mechanics of storage and
  * the atomic Supersession boundary — but holds no supersession *policy* (which
@@ -196,6 +201,23 @@ export class TemporalGraphStore {
     } finally {
       client.release();
     }
+  }
+
+  /** Store a Fact's embedding (pgvector). Best-effort; never blocks the write. */
+  async setFactEmbedding(factId: string, embedding: number[]): Promise<void> {
+    await this.pool.query("UPDATE facts SET embedding = $2::vector WHERE id = $1", [
+      factId,
+      formatVector(embedding),
+    ]);
+  }
+
+  /** Whether a Fact has an embedding stored (for tests/diagnostics). */
+  async hasEmbedding(factId: string): Promise<boolean> {
+    const { rows } = await this.pool.query(
+      "SELECT embedding IS NOT NULL AS has FROM facts WHERE id = $1",
+      [factId],
+    );
+    return rows[0]?.has === true;
   }
 
   async getEntity(id: string): Promise<Entity | null> {
