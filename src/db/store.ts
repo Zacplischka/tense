@@ -90,6 +90,19 @@ export interface RecalledFact {
   reinforcedBy: number;
 }
 
+/**
+ * A Fact whose **transaction time** changed within a window — the `changes` feed.
+ * Extends {@link RecalledFact} with the transaction-time stamps (when the system
+ * learned and, if applicable, retired the Fact), so a caller can tell a newly
+ * learned Fact from one that was just superseded. Distinct from valid-time recall.
+ */
+export interface FactChange extends RecalledFact {
+  /** Transaction time: when the system first held this Fact (created_at). */
+  learnedAt: Date;
+  /** Transaction time: when the system retired it (expired_at); null = still Current. */
+  retiredAt: Date | null;
+}
+
 const FACT_COLUMNS =
   "id, subject_id, predicate, object_id, source_id, valid_at, invalid_at, created_at, expired_at";
 
@@ -137,7 +150,7 @@ export function formatVector(embedding: number[]): string {
 
 /** Shared SELECT for reading Facts with entity names + Source inlined. */
 const RECALL_SELECT = `
-  SELECT f.id, f.predicate, f.valid_at, f.invalid_at, f.expired_at,
+  SELECT f.id, f.predicate, f.valid_at, f.invalid_at, f.expired_at, f.created_at AS tx_created,
          subj.name AS subject_name, obj.name AS object_name,
          s.id AS source_id, s.label AS source_label, s.text AS source_text,
          (SELECT count(*)::int FROM fact_sources fs WHERE fs.fact_id = f.id) AS reinforced_by
@@ -407,6 +420,31 @@ export class TemporalGraphStore {
   async getFact(id: string): Promise<Fact | null> {
     const { rows } = await this.pool.query(`SELECT ${FACT_COLUMNS} FROM facts WHERE id = $1`, [id]);
     return rows[0] ? mapFact(rows[0]) : null;
+  }
+
+  /**
+   * The transaction-time change feed (the `changes` tool): Facts the system
+   * **learned** (`created_at >= since`) or **retired** (`expired_at >= since`)
+   * since an instant, most-recent change first. This is the other half of the
+   * bi-temporal model — *when the system knew*, distinct from valid-time recall
+   * (*when it was true*) — and lets an agent sync incrementally ("what changed in
+   * my memory since I last checked?"). A Fact created and superseded in the same
+   * window appears once, with both `learnedAt` and `retiredAt` set.
+   */
+  async changesSince(since: Date, limit = 50): Promise<FactChange[]> {
+    const lim = clampLimit(limit);
+    const { rows } = await this.pool.query(
+      `${RECALL_SELECT}
+       WHERE f.created_at >= $1 OR (f.expired_at IS NOT NULL AND f.expired_at >= $1)
+       ORDER BY GREATEST(f.created_at, COALESCE(f.expired_at, f.created_at)) DESC
+       LIMIT ${lim}`,
+      [since],
+    );
+    return rows.map((r) => ({
+      ...mapRecalledRow(r),
+      learnedAt: r.tx_created as Date,
+      retiredAt: (r.expired_at as Date | null) ?? null,
+    }));
   }
 
   /**

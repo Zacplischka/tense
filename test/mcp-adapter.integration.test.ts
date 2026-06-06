@@ -48,6 +48,7 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     const client = await connect(depsWith(new StubExtractor()));
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
+      "changes",
       "entities",
       "history",
       "preview",
@@ -62,7 +63,7 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     const client = await connect(depsWith(new StubExtractor()));
     const { tools } = await client.listTools();
     const byName = Object.fromEntries(tools.map((t) => [t.name, t.annotations]));
-    for (const ro of ["preview", "recall", "history", "stats", "entities", "sources"]) {
+    for (const ro of ["preview", "recall", "history", "stats", "entities", "sources", "changes"]) {
       expect(byName[ro]?.readOnlyHint).toBe(true);
     }
     // remember writes, but Tense never deletes — advertise that explicitly.

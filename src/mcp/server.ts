@@ -141,6 +141,36 @@ export function createMcpServer(deps: RememberDeps): McpServer {
   );
 
   server.registerTool(
+    "changes",
+    {
+      title: "Changes",
+      description:
+        "Return Facts whose transaction time changed since a date — those the memory " +
+        "LEARNED (created) or RETIRED (superseded), most-recent change first. The " +
+        "change feed for incremental sync ('what changed since I last checked?'); " +
+        "distinct from valid-time `recall`. Each carries `learnedAt`/`retiredAt`.",
+      inputSchema: {
+        since: z.string().describe("ISO date/time; return Facts learned or retired at/after this instant."),
+        limit: z.number().int().positive().optional().describe("Max Facts to return (default 50)."),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async ({ since, limit }) => {
+      const sinceDate = new Date(since);
+      if (Number.isNaN(sinceDate.getTime())) {
+        return { content: [{ type: "text", text: `invalid since date: ${since}` }], isError: true };
+      }
+      try {
+        const changes = await deps.store.changesSince(sinceDate, limit);
+        return { content: [{ type: "text", text: JSON.stringify(changes, null, 2) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text", text: `changes failed: ${message}` }], isError: true };
+      }
+    },
+  );
+
+  server.registerTool(
     "stats",
     {
       title: "Stats",

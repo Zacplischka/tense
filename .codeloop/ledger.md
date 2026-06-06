@@ -606,3 +606,27 @@ priority:_
   name) — functional, not decorative.
 - **Commit**: 857d9bb
 - **Saturation**: none changed (performance produced V=3).
+
+### Iteration 25 · new-capability (functionality) · mode=exploit (fresh survey)
+- **Change**: Add a `changes` MCP tool + `TemporalGraphStore.changesSince(since)` —
+  the TRANSACTION-time change feed: Facts the memory LEARNED (`created_at >= since`)
+  or RETIRED (`expired_at >= since`) since an instant, newest change first, each
+  with `learnedAt`/`retiredAt`. This is the other half of the bi-temporal model —
+  *when the system knew*, vs valid-time `recall` (*when it was true*) — which no
+  tool could query before; enables incremental sync ("what changed since I last
+  checked?"). Added `f.created_at AS tx_created` to the shared RECALL_SELECT (benign
+  extra column; `mapRecalledRow` unchanged) so changesSince reuses it.
+- **Fresh survey**: re-examined the model from scratch — the gap was that
+  transaction time (created_at/expired_at), half the bi-temporal model, was
+  query-invisible. Saturation flags cleared (all 0).
+- **Net-positive**: improves functionality (completes the bi-temporal query
+  surface; incremental-sync capability); protects correctness/existing readers
+  (additive method + tool + one ignored SELECT column; full suite + eval green).
+  V=4 C=4 S=4.
+- **Files**: src/db/store.ts (RECALL_SELECT col, FactChange, changesSince),
+  src/mcp/server.ts, test/changes.integration.test.ts (new),
+  test/mcp-adapter.integration.test.ts (tool-list + annotations), README.md.
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (39 files / 174 tests; +1 file, +5 tests vs iter 24).
+- **Commit**: bd59b0f
+- **Saturation**: cleared by fresh survey (all 0); functionality produced V=4.
