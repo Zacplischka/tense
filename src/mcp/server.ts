@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { remember, type RememberDeps } from "../pipeline.js";
 import { recall } from "../retrieval/recall.js";
+import { history } from "../retrieval/history.js";
 
 /**
  * Build the Tense MCP server over the ingest dependencies. Slice 01 exposed
@@ -64,6 +65,25 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       }
       const facts = await recall({ store: deps.store, provider: deps.provider }, query, { asOf });
       return { content: [{ type: "text", text: JSON.stringify(facts, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
+    "history",
+    {
+      title: "History",
+      description:
+        "Return the full Supersession chain for a subject (past and present Facts), " +
+        "optionally narrowed to one Predicate — each with its validity interval and " +
+        "Source, in chronological order.",
+      inputSchema: {
+        entity: z.string().min(1).describe("The subject Entity name (variants are resolved)."),
+        predicate: z.string().optional().describe("Optional Predicate to narrow the chain."),
+      },
+    },
+    async ({ entity, predicate }) => {
+      const chain = await history({ store: deps.store, resolver: deps.resolver }, entity, predicate);
+      return { content: [{ type: "text", text: JSON.stringify(chain, null, 2) }] };
     },
   );
 

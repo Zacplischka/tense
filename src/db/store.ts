@@ -344,6 +344,28 @@ export class TemporalGraphStore {
     return rows.map((r) => r.id as string);
   }
 
+  /**
+   * The full Supersession chain for a subject (all Facts, Current + superseded),
+   * optionally narrowed to one Predicate. Ordered chronologically by valid time,
+   * falling back to transaction time when valid_at is null, with transaction time
+   * as the tiebreak — so a closed Fact precedes the Current one that replaced it.
+   */
+  async history(subjectId: string, predicate?: string): Promise<RecalledFact[]> {
+    const params: unknown[] = [subjectId];
+    let predicateClause = "";
+    if (predicate) {
+      params.push(predicate);
+      predicateClause = "AND f.predicate = $2";
+    }
+    const { rows } = await this.pool.query(
+      `${RECALL_SELECT}
+       WHERE f.subject_id = $1 ${predicateClause}
+       ORDER BY COALESCE(f.valid_at, f.created_at) ASC, f.created_at ASC`,
+      params,
+    );
+    return rows.map(mapRecalledRow);
+  }
+
   /** Load full RecalledFact details for ids (caller preserves the fused order). */
   async loadRecalledByIds(ids: string[]): Promise<Map<string, RecalledFact>> {
     if (ids.length === 0) return new Map();
