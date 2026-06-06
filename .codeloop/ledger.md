@@ -1107,3 +1107,24 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Commit**: ed3a0ce
 - **Saturation**: ALL flags cleared (fresh survey, iter 45) — all already 0;
   new-capability active (V=3). Codebase remains mature/clean.
+
+### Iteration 46 · UX (viewer) · mode=exploit
+- **Change**: added a filter input to the viewer's Entities index — narrows the
+  name-sorted chip list by case-insensitive substring, with a "X of N" count and a
+  "no match" empty state. Closes a viewer/agent parity gap: the `entities` MCP tool
+  has a `query` filter but the human viewer's chip list had none, so finding one
+  Entity in a large graph meant scrolling the capped (maxHeight 120) list.
+- **Net-positive**: improves UX (find-an-entity usability as the graph grows;
+  parity with the agent surface). Protects the select/keyboard flow (chips
+  unchanged — still aria-pressed, focus-capturing) and graph/as-of rendering
+  (additive; derived `visibleEntities` only). V=3 C=5 S=5.
+- **Why UX (non-timestamp)**: diversify blocks the last two dims (functionality 45,
+  a11y 44); UX is steering-primary and open (last 41). The bi-temporal timestamp
+  arc completed at iter 45, so this is a deliberately different UX axis.
+- **Files**: viewer/app/page.tsx (entityFilter state; derived visibleEntities;
+  nav gains a labeled type=search input + empty state; map uses visibleEntities).
+- **Verification**: `npm run check:viewer` → EXIT=0 (tsc --noEmit ✓, next build ✓).
+  Viewer-only (page.tsx not imported by the main suite); the filter is a trivial
+  inline substring match (like the existing inline sort), verified via build. → pass.
+- **Commit**: bc13242
+- **Saturation**: UX active (V=3) — no flag change.

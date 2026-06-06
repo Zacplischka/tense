@@ -33,6 +33,7 @@ export default function Page() {
   const panelRef = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const [asOf, setAsOf] = useState(""); // "" = live; a YYYY-MM-DD date = point-in-time
+  const [entityFilter, setEntityFilter] = useState(""); // narrows the Entities index
 
   // A11y: when the detail panel opens, move focus into it so keyboard / screen-
   // reader users reach its content (the graph canvas isn't focusable); when it
@@ -147,6 +148,14 @@ export default function Page() {
   // never goes stale.
   const selectedEntity = selectedId ? view.entities.find((e) => e.id === selectedId) ?? null : null;
   const selectedFacts: EntityFact[] = selectedId ? factsForEntity(view, selectedId) : [];
+
+  // Entities index, name-sorted and narrowed by the filter box (case-insensitive
+  // substring) — viewer parity with the `entities` MCP tool's query, so finding one
+  // Entity in a large graph doesn't mean scrolling the whole chip list.
+  const entityQuery = entityFilter.trim().toLowerCase();
+  const visibleEntities = [...snapshot.entities]
+    .filter((e) => !entityQuery || e.name.toLowerCase().includes(entityQuery))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // --- growth glow: green-highlight genuinely new Entities -----------------
   useEffect(() => {
@@ -385,13 +394,24 @@ export default function Page() {
           the same detail panel + ringing its node). */}
       {snapshot.entities.length > 0 && (
         <nav aria-label="Entities" style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>
-            Entities ({snapshot.entities.length}) — select to inspect
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <label htmlFor="entity-filter" style={{ fontSize: 12, color: "#94a3b8" }}>
+              Entities ({entityQuery ? `${visibleEntities.length} of ${snapshot.entities.length}` : snapshot.entities.length}) — select to inspect
+            </label>
+            <input
+              id="entity-filter"
+              type="search"
+              value={entityFilter}
+              onChange={(e) => setEntityFilter(e.target.value)}
+              placeholder="filter…"
+              style={{ marginLeft: "auto", fontSize: 12, padding: "3px 8px", border: "1px solid #cbd5e1", borderRadius: 6, width: 150 }}
+            />
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 120, overflowY: "auto" }}>
-            {[...snapshot.entities]
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((e) => {
+            {visibleEntities.length === 0 ? (
+              <div style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0" }}>No Entities match “{entityFilter.trim()}”.</div>
+            ) : (
+              visibleEntities.map((e) => {
                 const on = e.id === selectedId;
                 return (
                   <button
@@ -419,7 +439,8 @@ export default function Page() {
                     {e.name}
                   </button>
                 );
-              })}
+              })
+            )}
           </div>
         </nav>
       )}
