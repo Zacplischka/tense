@@ -53,8 +53,19 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   from a real StubExtractor run, throwaway capture script deleted.
 - ~~[readability] `expireFacts`/`supersedeAndInsert` shared close loop~~ — DONE
   (iter 3): extracted `closeFactsTx`.
-- [DX/tooling] (still open) ESLint/Prettier — biggest remaining lever but highest
-  blast radius; budget a whole iteration and gate carefully.
+- [DX/tooling] (still open) ESLint/Prettier — biggest remaining lever. Surface
+  measured in iter-5 fresh survey: only 3 `any` in src, no stray `console`, BUT a
+  recommended config also flags the several *intentional* empty `catch {}` blocks
+  (env.ts, recall.ts, pipeline.ts embedding, contradiction.ts) → needs
+  `no-empty:[allowEmptyCatch]` (or per-line disables), and it adds eslint +
+  typescript-eslint devDeps + a lockfile change. Budget a whole iteration; aim
+  for a flat config that passes green on the current tree with zero source edits.
+- [new-capability] An `entities` MCP tool — list/search Entities (and their
+  Current Fact counts) to browse the graph by node, complementing `stats`.
+  Additive, read-only, isolated.
+- [perf] Demo-scale only today: entity-resolver trigram fuzzy match and the
+  recall rankers do seq scans (code says "fine at demo scale"). A real perf turn
+  = add pg_trgm GIN + ivfflat indexes via a migration. Deferred until scale matters.
 
 ## Log
 
@@ -123,3 +134,26 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   typecheck` ✓ · `npm test` ✓ (25 files / 111 tests, unchanged).
 - **Commit**: 814a93c
 - **Saturation**: none changed (docs produced V=3, not low-value).
+
+### Iteration 5 · tests · mode=exploit (fresh survey)
+- **Change**: Add `test/recall-hybrid.integration.test.ts` — 3 tests covering
+  `recall()`'s hybrid path WITH a provider (the other recall/pipeline tests run
+  provider-less, keyword-only). Uses the deterministic BagOfWordsProvider so the
+  semantic ranker is live without a network call. Proves filter-then-fuse: (1)
+  ingest stores an embedding; (2) a query that names the superseded object
+  ("Alice") returns the Current Fact (Bob) via the SEMANTIC ranker — keyword
+  can't match Bob and the superseded Alice is filtered out in SQL; (3) the
+  temporal filter applies to the semantic branch under `as_of` (returns Alice).
+- **Net-positive**: improves tests (pins the project's headline hybrid-retrieval
+  mechanism at the function level — previously only exercised incidentally by the
+  eval harness); protects correctness/behavior (additive new test file; no source
+  change). V=3 C=5 S=5.
+- **Fresh survey**: swept the whole tree incl. provider/openrouter, llm-extractor,
+  extraction prompts, eval harness + metrics — all clean, no correctness bug. The
+  hybrid recall path was the notable function-level coverage gap (now closed).
+  ESLint surface measured (see Backlog). Saturation flags cleared (all were 0).
+- **Files**: test/recall-hybrid.integration.test.ts.
+- **Verification**: `npm run typecheck` ✓ · `npm test` ✓
+  (26 files / 114 tests; +1 file, +3 tests vs iter 4).
+- **Commit**: 43ad5a6
+- **Saturation**: cleared by fresh survey (all 0); tests produced V=3.
