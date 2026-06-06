@@ -23,6 +23,12 @@ export interface RecallOptions {
    * before the limit, so you still get the top matches that clear the bar.
    */
   minReinforced?: number | null;
+  /**
+   * Attach `citedBy` (the Sources asserting each Fact — origin + Reaffirmations) to
+   * every result. Off by default so the common path stays lean; turn on to audit
+   * WHICH Sources back each Fact, not just how many (`reinforcedBy`).
+   */
+  includeSources?: boolean;
 }
 
 /** Canonicalize a Predicate filter to the stored slug form, or null if blank. */
@@ -52,33 +58,44 @@ export async function recall(
   const minReinforced = opts.minReinforced && opts.minReinforced > 0 ? Math.floor(opts.minReinforced) : null;
   const q = query.trim();
 
-  // Empty query: browse the temporally-filtered set, no relevance ranking.
-  if (q === "") return store.recallByTemporal(asOf, limit, predicate, minReinforced);
+  let result: RecalledFact[];
 
-  const candidateLimit = Math.max(limit * 2, 20);
-  const keyword = await store.rankByKeyword(q, asOf, candidateLimit, predicate, minReinforced);
+  if (q === "") {
+    // Empty query: browse the temporally-filtered set, no relevance ranking.
+    result = await store.recallByTemporal(asOf, limit, predicate, minReinforced);
+  } else {
+    const candidateLimit = Math.max(limit * 2, 20);
+    const keyword = await store.rankByKeyword(q, asOf, candidateLimit, predicate, minReinforced);
 
-  let semantic: string[] = [];
-  if (provider) {
-    try {
-      const [embedding] = await provider.embed([q]);
-      if (embedding) semantic = await store.rankBySemantic(embedding, asOf, candidateLimit, predicate, minReinforced);
-    } catch (err) {
-      // Best-effort: keyword + temporal filter still answer the query. Warn (stderr,
-      // never stdout/MCP) so a failing embedding provider doesn't silently drop the
-      // semantic ranker on every recall without anyone noticing.
-      console.error(
-        "[tense] query embedding failed; falling back to keyword-only recall:",
-        err instanceof Error ? err.message : err,
-      );
+    let semantic: string[] = [];
+    if (provider) {
+      try {
+        const [embedding] = await provider.embed([q]);
+        if (embedding) semantic = await store.rankBySemantic(embedding, asOf, candidateLimit, predicate, minReinforced);
+      } catch (err) {
+        // Best-effort: keyword + temporal filter still answer the query. Warn (stderr,
+        // never stdout/MCP) so a failing embedding provider doesn't silently drop the
+        // semantic ranker on every recall without anyone noticing.
+        console.error(
+          "[tense] query embedding failed; falling back to keyword-only recall:",
+          err instanceof Error ? err.message : err,
+        );
+      }
     }
+
+    const fusedIds = reciprocalRankFusion([semantic, keyword]).slice(0, limit);
+    const byId = await store.loadRecalledByIds(fusedIds);
+    result = fusedIds
+      .map((id) => byId.get(id))
+      .filter((f): f is RecalledFact => f !== undefined);
   }
 
-  const fusedIds = reciprocalRankFusion([semantic, keyword]).slice(0, limit);
-  if (fusedIds.length === 0) return [];
+  // Opt-in provenance detail: attach the Sources that assert each Fact. One batched
+  // query, only when requested — keeps the default result lean.
+  if (opts.includeSources && result.length > 0) {
+    const byFact = await store.citingSourcesFor(result.map((f) => f.id));
+    for (const f of result) f.citedBy = byFact.get(f.id) ?? [];
+  }
 
-  const byId = await store.loadRecalledByIds(fusedIds);
-  return fusedIds
-    .map((id) => byId.get(id))
-    .filter((f): f is RecalledFact => f !== undefined);
+  return result;
 }

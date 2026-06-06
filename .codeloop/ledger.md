@@ -1375,3 +1375,30 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   EXPLAIN script deleted. (No tsc/lint/build impact — .sql only.) → pass.
 - **Commit**: 5f667e3
 - **Saturation**: performance active (V=3) — no flag change.
+
+### Iteration 57 · new-capability (functionality) · mode=exploit
+- **Change**: `recall` gains an opt-in `include_sources` flag that attaches `citedBy`
+  — the Sources asserting each Fact (origin + reaffirmations, chronological) — to
+  results. Closes a real provenance gap: you could see `reinforcedBy` (count) and
+  the origin `source`, but couldn't enumerate WHICH Sources back a Fact (the
+  fact_sources join was hidden). The "opt-in knob" path flagged at iter 54 — DONE
+  (backlog #1) — opt-in so the default result stays lean (zero bloat).
+- **Net-positive**: improves functionality (surface hidden provenance data; trust
+  audit, ADR 0005). Protects default recall (`citedBy` absent unless requested),
+  correctness, payload weight (opt-in). V=3 C=4 S=4.
+- **Why functionality**: diversify blocks the last two dims (perf 56, correctness 55);
+  functionality is steering-primary and open (last 51). This is the GENERATIVE-SWITCH
+  "opt-in knob" the iter-54 scout identified as the way past functionality saturation.
+- **Design / blast radius**: `RecalledFact.citedBy?` OPTIONAL (absent by default →
+  history/changes unaffected, README recall example unchanged). New batched
+  `store.citingSourcesFor(ids)` (one query, only when requested); recall() attaches
+  across BOTH the fused and empty-query paths (restructured to a single `result`).
+- **Files**: src/db/store.ts (citedBy field + citingSourcesFor), src/retrieval/recall.ts
+  (includeSources option + attach), src/mcp/server.ts (include_sources param),
+  test/recall-provenance.integration.test.ts (+3: opt-in attaches, default omits,
+  browse path attaches), README.md (recall tools-table row).
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (40 files / 196 tests, +3). Viewer gate not run (no viewer change). → pass.
+- **Commit**: 5e540b2
+- **Saturation**: new-capability/functionality active (V=3) — clean opt-in win, not
+  saturated this turn. Backlog #1 (citing-sources) done.

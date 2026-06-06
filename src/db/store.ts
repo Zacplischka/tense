@@ -102,6 +102,13 @@ export interface RecalledFact {
    * confirmed Fact above a single mention. Always ≥1 for pipeline-ingested Facts.
    */
   reinforcedBy: number;
+  /**
+   * The Sources that assert this Fact (origin + Reaffirmations, chronological) —
+   * the provenance behind `reinforcedBy` (`citedBy.length === reinforcedBy`). Only
+   * populated on opt-in (recall's `include_sources`); omitted by default so the
+   * common path stays lean. Lets a caller audit WHICH Sources back a claim.
+   */
+  citedBy?: Array<{ id: string; label: string | null }>;
 }
 
 /**
@@ -618,6 +625,33 @@ export class TemporalGraphStore {
     if (ids.length === 0) return new Map();
     const { rows } = await this.pool.query(`${RECALL_SELECT} WHERE f.id = ANY($1::uuid[])`, [ids]);
     return new Map(rows.map((row) => [row.id as string, mapRecalledRow(row)]));
+  }
+
+  /**
+   * The Sources asserting each of `factIds` (origin + Reaffirmations), chronological
+   * by Source ingest — the provenance detail behind `reinforcedBy`. One batched
+   * query keyed by Fact id; backs recall's opt-in `include_sources`.
+   */
+  async citingSourcesFor(
+    factIds: string[],
+  ): Promise<Map<string, Array<{ id: string; label: string | null }>>> {
+    const out = new Map<string, Array<{ id: string; label: string | null }>>();
+    if (factIds.length === 0) return out;
+    const { rows } = await this.pool.query(
+      `SELECT fs.fact_id, s.id, s.label
+       FROM fact_sources fs
+       JOIN sources s ON s.id = fs.source_id
+       WHERE fs.fact_id = ANY($1::uuid[])
+       ORDER BY s.created_at ASC, s.id ASC`,
+      [factIds],
+    );
+    for (const r of rows) {
+      const factId = r.fact_id as string;
+      const list = out.get(factId) ?? [];
+      list.push({ id: r.id as string, label: (r.label as string | null) ?? null });
+      out.set(factId, list);
+    }
+    return out;
   }
 
   /**

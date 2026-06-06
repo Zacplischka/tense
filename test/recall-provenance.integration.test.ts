@@ -56,3 +56,25 @@ describe("recall surfaces provenance strength (reinforcedBy)", () => {
     expect(chain.find((f) => f.object === "Carol")?.reinforcedBy).toBe(1);
   });
 });
+
+describe("recall include_sources (citedBy provenance detail)", () => {
+  it("attaches WHICH Sources assert each Fact on opt-in (origin + reaffirmations)", async () => {
+    const facts = await recall({ store }, "Zach knows", { includeSources: true });
+    const bob = facts.find((f) => f.object === "Bob");
+    const carol = facts.find((f) => f.object === "Carol");
+    expect(bob?.citedBy?.map((s) => s.label).sort()).toEqual(["s1", "s2"]);
+    expect(carol?.citedBy?.map((s) => s.label)).toEqual(["s3"]);
+    // The detail is exactly the provenance behind the count.
+    expect(bob?.citedBy?.length).toBe(bob?.reinforcedBy);
+  });
+
+  it("omits citedBy by default, keeping the common path lean", async () => {
+    const [fact] = await recall({ store }, "Zach knows");
+    expect(fact?.citedBy).toBeUndefined();
+  });
+
+  it("attaches citedBy on the empty-query browse path too", async () => {
+    const all = await recall({ store }, "", { includeSources: true });
+    expect(all.find((f) => f.object === "Bob")?.citedBy?.length).toBe(2);
+  });
+});
