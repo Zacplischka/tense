@@ -1034,3 +1034,22 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   asserted tool==store output; updated it to the deliberate new contract, re-ran green.
 - **Commit**: f74f061
 - **Saturation**: new-capability/functionality active (V=3) — no flag change.
+
+### Iteration 43 · tests · mode=exploit
+- **Change**: added an MCP-boundary test that the recent agent-facing signals
+  survive the real client→server→JSON path: `remember`'s `factsSuperseded[].reason`
+  (iter 36) and `recall`'s `learnedAt` serialized as an ISO string (iter 39). These
+  were tested at the pipeline/store level but never end-to-end through the wire that
+  agents actually consume — a serialization-boundary regression (Date→string, a
+  dropped field) would have slipped past the in-process tests.
+- **Net-positive**: improves tests (locks the actual product contract — the MCP
+  tool JSON — for two README-advertised signals). Serves recent functionality
+  (steering's supporting-act exception). Test-only, additive. V=3 C=5 S=5.
+- **Why tests**: diversify blocks the last two dims (functionality 42, UX 41);
+  tests harden that recent functionality at the boundary it's actually used.
+- **Files**: test/mcp-adapter.integration.test.ts (one new boundary test on the
+  default/deterministic cardinality path — contradiction reason stays pipeline-level).
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · `npm test` ✓
+  (40 files / 186 tests, +1 new). Viewer gate not run (no viewer change). → pass.
+- **Commit**: e705112
+- **Saturation**: tests active (V=3) — no flag change.

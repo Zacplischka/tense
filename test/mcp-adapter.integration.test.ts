@@ -86,6 +86,25 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     expect(recalled[0].source).toBeTruthy();
   });
 
+  it("carries the agent-facing signals across the JSON boundary (supersession reason + learnedAt)", async () => {
+    const client = await connect(depsWith(new StubExtractor()));
+
+    await client.callTool({ name: "remember", arguments: { text: "[2024-01-01] Zach reports to Alice." } });
+    const second = payload(
+      await client.callTool({ name: "remember", arguments: { text: "[2024-06-01] Zach reports to Bob." } }),
+    );
+    // `remember` tags WHY each Fact was retired — and it survives serialization.
+    expect(second.factsSuperseded).toEqual([
+      expect.objectContaining({ object: "Alice", reason: "cardinality" }),
+    ]);
+
+    const recalled = payload(await client.callTool({ name: "recall", arguments: { query: "Zach reports to" } }));
+    // `learnedAt` (transaction time) crosses the wire as an ISO date string.
+    const learned = recalled[0].learnedAt;
+    expect(typeof learned).toBe("string");
+    expect(Number.isNaN(Date.parse(learned))).toBe(false);
+  });
+
   it("stats tags each Predicate with its cardinality (single supersedes, multi accumulates)", async () => {
     const client = await connect(depsWith(new StubExtractor()));
     await client.callTool({ name: "remember", arguments: { text: "Zach reports to Alice." } });
