@@ -7,6 +7,8 @@ import { EntityResolver } from "../src/resolution/entity-resolver.js";
 import { defaultPredicateRegistry } from "../src/supersession/registry.js";
 import { remember, type RememberDeps } from "../src/pipeline.js";
 import { recall } from "../src/retrieval/recall.js";
+import type { Extractor } from "../src/extraction/types.js";
+import type { ProviderClient } from "../src/provider/types.js";
 
 const pool = new pg.Pool({ connectionString: TEST_DATABASE_URL });
 
@@ -42,6 +44,7 @@ describe("remember pipeline (extract -> resolve -> supersede -> persist)", () =>
     const second = await remember(deps, "[2024-06-01] Zach reports to Bob.", "q2");
 
     expect(second.factsSuperseded.map((f) => f.object)).toEqual(["Alice"]);
+    expect(second.factsSuperseded.map((f) => f.reason)).toEqual(["cardinality"]);
     expect(second.factsCreated.map((f) => f.object)).toEqual(["Bob"]);
 
     const current = await recall({ store }, "Zach");
@@ -62,6 +65,50 @@ describe("remember pipeline (extract -> resolve -> supersede -> persist)", () =>
     const current = await recall({ store }, "report");
     expect(current).toHaveLength(1);
     expect(current[0]?.object).toBe("Bob");
+  });
+
+  it("tags a cross-Predicate contradiction supersession with reason 'contradiction'", async () => {
+    // The StubExtractor's grammar doesn't cover works-at/left; emit them directly.
+    const crossPredicate: Extractor = {
+      async extract(text: string) {
+        const isLeft = /left/i.test(text);
+        return {
+          entities: [{ name: "Alice" }, { name: "Acme" }],
+          facts: [
+            {
+              subject: "Alice",
+              predicate: isLeft ? "left" : "works-at",
+              object: "Acme",
+              validAt: new Date(isLeft ? "2024-01-01T00:00:00Z" : "2020-01-01T00:00:00Z"),
+              invalidAt: null,
+            },
+          ],
+        };
+      },
+    };
+    // A judge that nominates any candidate whose line mentions "Acme".
+    const judge: ProviderClient = {
+      async complete(req) {
+        const text = (req.prompt ?? "") + (req.messages?.map((m) => m.content).join("\n") ?? "");
+        const ids = [...text.matchAll(/id=([0-9a-f-]{36}):\s*(.+)/g)]
+          .filter((m) => m[2]!.includes("Acme"))
+          .map((m) => m[1]!);
+        return { text: JSON.stringify({ contradicted_ids: ids }), model: "judge" };
+      },
+      async embed() {
+        return [];
+      },
+    };
+
+    const cdeps: RememberDeps = { ...deps, extractor: crossPredicate, provider: judge, enableContradiction: true };
+    await remember(cdeps, "Alice works at Acme.");
+    const left = await remember(cdeps, "Alice left Acme.");
+
+    // The retired Fact's predicate ('works-at') differs from the one just stated
+    // ('left') — the reason flag is what makes that legible.
+    expect(left.factsSuperseded).toEqual([
+      expect.objectContaining({ predicate: "works-at", object: "Acme", reason: "contradiction" }),
+    ]);
   });
 
   it("surfaces extraction failure as an error without corrupting the graph", async () => {

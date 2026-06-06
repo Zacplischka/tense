@@ -42,7 +42,9 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       description:
         "Ingest a chunk of text as a Source: extract Facts, resolve Entities, and " +
         "supersede any prior Fact on a single-valued Predicate. Returns the Facts " +
-        "created and superseded.",
+        "created and superseded — each superseded Fact tagged with why it was " +
+        "retired: 'cardinality' (same Predicate, new object) or 'contradiction' " +
+        "(a cross-Predicate conflict, e.g. 'works-at' retired by 'left').",
       inputSchema: {
         text: z.string().min(1).describe("The text to remember."),
         source: z.string().optional().describe("Optional label for the Source (e.g. a filename)."),

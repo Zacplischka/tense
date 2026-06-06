@@ -37,6 +37,19 @@ export interface FactSummary {
 }
 
 /**
+ * A Fact retired by this ingest, tagged with WHY it closed. `cardinality`: a
+ * single-valued Predicate received a new object (same Predicate, e.g. reports-to
+ * Alice → reports-to Bob). `contradiction`: an LLM-judged cross-Predicate conflict
+ * (e.g. "works-at Acme" retired by "left Acme"). The two are otherwise
+ * indistinguishable in the summary — and a contradiction retires a Fact whose
+ * predicate DIFFERS from the one just stated — so this flag is how a caller tells
+ * a routine update apart from a semantic conflict.
+ */
+export interface SupersededFact extends FactSummary {
+  reason: "cardinality" | "contradiction";
+}
+
+/**
  * How one extracted name resolved during ingest (PRD US-10). The resolver already
  * decides this; surfacing it lets a caller SEE when a variant was fuzzy-merged into
  * an existing Entity (e.g. "Zachery" → "Zachary") and catch a wrong merge, instead
@@ -56,7 +69,7 @@ export interface EntityResolution {
 export interface RememberSummary {
   sourceId: string;
   factsCreated: FactSummary[];
-  factsSuperseded: FactSummary[];
+  factsSuperseded: SupersededFact[];
   /**
    * Facts already Current and re-stated by this Source (ADR 0005). No new Fact
    * is created; the Source is recorded as additional provenance. Distinguishes
@@ -177,6 +190,7 @@ export async function remember(
         subject: subject.name,
         predicate: fact.predicate,
         object: closedObject?.name ?? c.objectId,
+        reason: "cardinality",
       });
     }
 
@@ -213,6 +227,7 @@ export async function remember(
           subject: subject.name,
           predicate: c.predicate,
           object: closedObject?.name ?? c.objectId,
+          reason: "contradiction",
         });
       }
     }

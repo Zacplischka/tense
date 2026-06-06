@@ -851,3 +851,34 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Commit**: 89251b4 (ledger only)
 - **Saturation**: cleared by fresh survey (all already 0); 5th scout (20,29,31,33,35)
   — stable equilibrium on a mature codebase, as expected.
+
+### Iteration 36 · new-capability (functionality) · mode=exploit (explore turn)
+- **Change**: `remember`'s summary now tags every superseded Fact with WHY it
+  closed — `reason: "cardinality" | "contradiction"`. Surfaces a previously hidden
+  signal: the LLM-judged cross-Predicate contradiction path is ON by default in the
+  agent-facing deps (`remember-deps.ts`), so a real client could see a Fact retired
+  with a DIFFERENT predicate than the one it just stated (e.g. state "left Acme" →
+  "works-at Acme" superseded) and had no way to tell that apart from a routine
+  same-Predicate cardinality update. Now it's explicit. Updated the `remember` MCP
+  tool description to advertise the flag (agent-UX).
+- **Net-positive**: improves functionality (surfaces a hidden, agent-consumable
+  signal — the steering's explicit example). Protects correctness, tests, the
+  deterministic demo (contradiction off there → only "cardinality" appears).
+  V=3 C=4 S=4.
+- **Why this over the explore-nudge dimension**: explore (36%4==0) points at the
+  least-recently-touched dim (DX/tooling, iter 7), but the user steering makes
+  functionality/UX primary and rotation secondary — and this is squarely
+  "surface a hidden signal." Diversify satisfied (last two: UX 34, scout 35).
+- **Design / blast radius**: new `SupersededFact extends FactSummary` type;
+  `RememberSummary.factsSuperseded` retyped. Additive — preview has its OWN types
+  (`RememberPreview`/`PreviewFact`, untouched); the viewer reads only
+  `factsSuperseded.length` (backward-compatible); no test deep-equals the entry
+  shape. Two call sites set the reason (cardinality branch, contradiction branch).
+- **Files**: src/pipeline.ts (SupersededFact + 2 reason tags), src/mcp/server.ts
+  (remember description), test/pipeline.integration.test.ts (cardinality-reason
+  assertion + new cross-Predicate contradiction-through-pipeline test with inline
+  extractor + judge double).
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (39 files / 175 tests, +1 new). → pass.
+- **Commit**: 9eaaa1e
+- **Saturation**: new-capability/functionality active (V=3) — no flag change.
