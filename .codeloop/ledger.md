@@ -1053,3 +1053,28 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   (40 files / 186 tests, +1 new). Viewer gate not run (no viewer change). → pass.
 - **Commit**: e705112
 - **Saturation**: tests active (V=3) — no flag change.
+
+### Iteration 44 · accessibility · mode=explore
+- **Change**: made the viewer's entity detail panel keyboard-operable (standard
+  disclosure focus pattern). The `<aside>` is now a programmatic focus target
+  (tabIndex=-1, outline:none); opening it moves focus into it so keyboard/SR users
+  reach the Fact list (the graph canvas isn't focusable); Escape closes it; and
+  closing returns focus to the chip that opened it. Chip onClick captures the
+  trigger element; the graph (mouse) path clears it so focus just falls back.
+- **Net-positive**: improves accessibility (keyboard operability + focus order on
+  the primary UX surface — Escape-to-dismiss and focus-into/return were missing).
+  Protects the mouse flow (unchanged behavior) and graph/as-of rendering (additive
+  refs/handlers only). V=3 C=4 S=5.
+- **Why a11y on this explore turn**: explore (44%4==0) → least-recently-touched
+  dimension. Architecture (21) is mature — a shared-core refactor would be low-S,
+  no safe eligible candidate; performance (24) deferred items are risky/scale-only.
+  Accessibility (27) is the eligible least-recently-touched dim, well-isolated, and
+  serves the steering's UX surface. Diversify blocks tests(43)/functionality(42).
+- **Files**: viewer/app/page.tsx (panelRef/triggerRef + focus effect; aside
+  tabIndex/onKeyDown Escape/outline; chip captures trigger; graph onSelect clears it).
+- **Verification**: `npm run check:viewer` → EXIT=0 (tsc --noEmit ✓, next build ✓).
+  Viewer-only change (page.tsx isn't imported by the main suite); no component-test
+  harness exists for focus/keyboard behavior, so verified via typecheck + build
+  per the established viewer-a11y pattern (iters 16/27/34). → pass.
+- **Commit**: cd8a88c
+- **Saturation**: accessibility active (V=3) — no flag change.

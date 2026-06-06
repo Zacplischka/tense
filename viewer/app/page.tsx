@@ -30,7 +30,23 @@ export default function Page() {
   const [message, setMessage] = useState<string | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
   const [asOf, setAsOf] = useState(""); // "" = live; a YYYY-MM-DD date = point-in-time
+
+  // A11y: when the detail panel opens, move focus into it so keyboard / screen-
+  // reader users reach its content (the graph canvas isn't focusable); when it
+  // closes, return focus to the chip that opened it. Escape (handled on the panel)
+  // closes it. A mouse-driven open via a graph node clears the trigger (no chip to
+  // return to), so focus just falls back naturally.
+  useEffect(() => {
+    if (selectedId) {
+      panelRef.current?.focus();
+    } else if (triggerRef.current) {
+      triggerRef.current.focus();
+      triggerRef.current = null;
+    }
+  }, [selectedId]);
 
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const seen = useRef<Set<string>>(new Set());
@@ -306,7 +322,10 @@ export default function Page() {
           height={GRAPH_HEIGHT}
           highlightedIds={highlightedIds}
           selectedId={selectedId}
-          onSelect={setSelectedId}
+          onSelect={(id) => {
+            triggerRef.current = null; // mouse path: no chip to restore focus to
+            setSelectedId(id);
+          }}
         />
         {snapshot.entities.length === 0 && (
           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#94a3b8", fontSize: 15, pointerEvents: "none" }}>
@@ -315,7 +334,12 @@ export default function Page() {
         )}
         {selectedEntity && (
           <aside
+            ref={panelRef}
+            tabIndex={-1}
             aria-label={`Facts for ${selectedEntity.name}`}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setSelectedId(null);
+            }}
             style={{
               position: "absolute",
               top: 0,
@@ -327,6 +351,7 @@ export default function Page() {
               display: "flex",
               flexDirection: "column",
               boxShadow: "-8px 0 24px -18px rgba(0,0,0,0.25)",
+              outline: "none", // programmatic focus target; children show their own focus
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderBottom: "1px solid #eef2f7" }}>
@@ -373,7 +398,14 @@ export default function Page() {
                     key={e.id}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => setSelectedId(on ? null : e.id)}
+                    onClick={(ev) => {
+                      if (on) {
+                        setSelectedId(null);
+                      } else {
+                        triggerRef.current = ev.currentTarget; // restore focus here on close
+                        setSelectedId(e.id);
+                      }
+                    }}
                     style={{
                       fontSize: 13,
                       padding: "3px 10px",
