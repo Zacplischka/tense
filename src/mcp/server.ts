@@ -183,14 +183,25 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       title: "Stats",
       description:
         "Return a read-only snapshot of the graph: Entity and Source counts, Fact " +
-        "totals split Current vs superseded, and a per-Predicate breakdown. Useful " +
-        'for an agent to answer "what is in my memory?" without recalling Facts.',
+        "totals split Current vs superseded, and a per-Predicate breakdown — each " +
+        "Predicate tagged with its `cardinality`: `single` (a new value supersedes " +
+        "the prior, e.g. reports-to) or `multi` (values accumulate, e.g. knows). " +
+        'Useful for an agent to answer "what is in my memory, and which relations ' +
+        'replace vs accumulate?" without recalling Facts.',
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async () => {
       try {
-        return jsonResult(await deps.store.graphStats());
+        const stats = await deps.store.graphStats();
+        // Annotate each Predicate with its cardinality from the registry — the rule
+        // that governs supersession. Merged HERE (not in the store) so the store
+        // stays free of supersession policy (ADR 0001/0002 separation).
+        const predicates = stats.predicates.map((p) => ({
+          ...p,
+          cardinality: deps.registry.cardinalityOf(p.predicate),
+        }));
+        return jsonResult({ ...stats, predicates });
       } catch (err) {
         return toolError("stats", err);
       }

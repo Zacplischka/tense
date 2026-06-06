@@ -132,7 +132,7 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 | `recall` | `(query, as_of?, predicate?, limit?, min_reinforced?)` | Ranked Facts — Current by default, or valid-at-`as_of`; optionally scoped to a Predicate, capped, or filtered to Facts confirmed by ≥`min_reinforced` Sources — each with Source, validity interval, `reinforcedBy`, and `learnedAt` (transaction time) |
 | `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
 | `changes` | `(since, limit?)` | Transaction-time change feed — Facts learned or retired since a date (incremental sync), each with `learnedAt`/`retiredAt` |
-| `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown |
+| `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown — each with its `cardinality` (`single` supersedes / `multi` accumulates) |
 | `entities` | `(query?, limit?)` | List/search Entities, each with its Current-Fact count (degree), most-connected first |
 | `sources` | `(limit?)` | List ingested Sources newest-first — label, preview, ingest time, and how many Facts cite each |
 
@@ -207,8 +207,12 @@ entered memory.
 ```json
 { "entities": 3, "sources": 2,
   "facts": { "total": 2, "current": 1, "superseded": 1 },
-  "predicates": [{ "predicate": "reports-to", "current": 1, "total": 2 }] }
+  "predicates": [{ "predicate": "reports-to", "current": 1, "total": 2, "cardinality": "single" }] }
 ```
+
+Each Predicate carries its `cardinality` — `single` (a new value supersedes the
+prior, e.g. `reports-to`) or `multi` (values accumulate, e.g. `knows`) — the rule
+that governs whether ingesting supersedes or adds, so an agent can predict it.
 
 **7. `preview`** — a dry-run of step 2 *before* committing it. `text: "[2024-09-01] Zach reports to Dana."` reports what `remember` *would* do — create the Dana Fact and supersede Bob — **writing nothing**:
 

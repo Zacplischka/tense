@@ -1010,3 +1010,27 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   typecheck + build ✓). → pass.
 - **Commit**: 16fbde2
 - **Saturation**: UX active (V=3) — no flag change.
+
+### Iteration 42 · new-capability (functionality) · mode=exploit
+- **Change**: `stats` now tags each Predicate in its breakdown with `cardinality`
+  (`single` = a new value supersedes the prior, e.g. reports-to; `multi` = values
+  accumulate, e.g. knows) — surfacing the `PredicateRegistry` rule that governs the
+  WHOLE supersession model but was invisible to agents. An agent can now predict
+  whether a `remember` will supersede or add, from `stats` alone.
+- **Net-positive**: improves functionality (surface a hidden, governing signal).
+  Protects store purity, correctness, the demo. V=3 C=4 S=5.
+- **Architecture note**: the enrichment is merged at the MCP TOOL layer
+  (`server.ts`, via `deps.registry.cardinalityOf`), NOT in the store — the store
+  holds no supersession policy (ADR 0001/0002). `GraphStats` (store type) is
+  unchanged; only the tool's JSON is richer.
+- **Why functionality**: diversify blocks the last two dims (UX 41, DX 40);
+  functionality (39) is open and is the steering's primary focus.
+- **Files**: src/mcp/server.ts (stats handler enrich + description),
+  test/mcp-adapter.integration.test.ts (new: stats cardinality single/multi),
+  test/stats.integration.test.ts (round-trip test updated to the enriched contract
+  — strengthened, not weakened), README.md (stats example + note + tools-table row).
+- **Verification**: `npm run check` → EXIT=0 (40 files / 185 tests, +1 net; viewer
+  typecheck + build ✓). First run caught a pre-existing round-trip test that
+  asserted tool==store output; updated it to the deliberate new contract, re-ran green.
+- **Commit**: f74f061
+- **Saturation**: new-capability/functionality active (V=3) — no flag change.

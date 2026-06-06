@@ -86,6 +86,17 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     expect(recalled[0].source).toBeTruthy();
   });
 
+  it("stats tags each Predicate with its cardinality (single supersedes, multi accumulates)", async () => {
+    const client = await connect(depsWith(new StubExtractor()));
+    await client.callTool({ name: "remember", arguments: { text: "Zach reports to Alice." } });
+    await client.callTool({ name: "remember", arguments: { text: "Zach knows Carol." } });
+
+    const stats = payload(await client.callTool({ name: "stats", arguments: {} }));
+    const byPredicate = Object.fromEntries(stats.predicates.map((p: any) => [p.predicate, p.cardinality]));
+    expect(byPredicate["reports-to"]).toBe("single"); // a new value supersedes the prior
+    expect(byPredicate["knows"]).toBe("multi"); // values accumulate
+  });
+
   it("extraction failure returns an isError result and the server stays alive", async () => {
     const failing: Extractor = {
       async extract() {

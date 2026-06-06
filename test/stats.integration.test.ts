@@ -79,7 +79,7 @@ describe("graphStats (store)", () => {
 });
 
 describe("stats (MCP tool)", () => {
-  it("round-trips the same snapshot the store returns", async () => {
+  it("returns the store snapshot, enriching each Predicate with its cardinality", async () => {
     await seed();
     const client = await connect();
 
@@ -89,6 +89,17 @@ describe("stats (MCP tool)", () => {
     const result: any = await client.callTool({ name: "stats", arguments: {} });
     expect(result.isError).toBeFalsy();
     const payload = JSON.parse(result.content[0].text);
-    expect(payload).toEqual(await store.graphStats());
+
+    const storeStats = await store.graphStats();
+    // Non-predicate fields round-trip the store snapshot exactly.
+    expect(payload.entities).toBe(storeStats.entities);
+    expect(payload.sources).toBe(storeStats.sources);
+    expect(payload.facts).toEqual(storeStats.facts);
+    // Predicates are the store's counts, each annotated with its registry
+    // cardinality (the rule that governs supersession) — merged at the tool layer.
+    expect(payload.predicates).toEqual([
+      { predicate: "reports-to", current: 1, total: 2, cardinality: "single" },
+      { predicate: "knows", current: 1, total: 1, cardinality: "multi" },
+    ]);
   });
 });
