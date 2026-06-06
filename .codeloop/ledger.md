@@ -835,3 +835,19 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   verified by review (renders iff `error`; clears on successful poll).
 - **Commit**: 38c4b69
 - **Saturation**: none changed (UX produced V=3).
+
+### Iteration 35 · — · mode=scout (fresh survey)
+- **Outcome**: No code change. Fresh whole-system re-examination found no new V≥3:
+  the eval gold set is comprehensive (10 scenarios — dated supersession, null
+  valid_at, out-of-order, tied valid_at, must-not-supersede multi-valued, distinct
+  subjects, 3-step chain, cross-predicate LLM-judged — plus point-in-time QA), so
+  "expand the eval" is NOT a gap; provider/extractor/viewer/store re-reasoned as
+  robust (no new bug). Diversify blocked UX(34). Deferred items unchanged in their
+  triggers (concurrency/ADR 0007, resolver/ivfflat perf, CI/no-remote). SCOUT > forcing.
+- **Finding (recorded)**: eval gold set verified comprehensive — don't treat
+  "expand gold set" as a backlog gap.
+- **Files**: none (scout) — ledger only.
+- **Verification**: n/a (no code change); tree green at start (lint ✓, 174 tests).
+- **Commit**: 89251b4 (ledger only)
+- **Saturation**: cleared by fresh survey (all already 0); 5th scout (20,29,31,33,35)
+  — stable equilibrium on a mature codebase, as expected.
