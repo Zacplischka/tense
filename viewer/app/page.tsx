@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { factsForEntity, snapshotAsOf, type EntityFact, type Snapshot } from "../lib/graph-model";
+import { ingestSummaryMessage } from "../lib/ingest-summary";
 
 // Canvas/WebGL graph must be client-only (it touches `window`); it owns its ref.
 const Graph = dynamic(() => import("../components/Graph"), {
@@ -166,21 +167,11 @@ export default function Page() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
-      const c = data.factsCreated?.length ?? 0;
-      const s = data.factsSuperseded?.length ?? 0;
-      const r = data.factsReaffirmed?.length ?? 0;
-      // Surface fuzzy entity merges so a wrong merge is visible, not silent.
-      const merges = (data.entitiesResolved ?? [])
-        .filter((e: { reason?: string }) => e.reason === "fuzzy")
-        .map((e: { input: string; resolvedTo: string }) => `${e.input}→${e.resolvedTo}`);
-      const mergeNote = merges.length ? ` · merged ${merges.join(", ")}` : "";
       setStatus("done");
-      setMessage(
-        c + s + r === 0
-          ? "No Facts found in that text."
-          : `✓ ${c} created · ${s} superseded · ${r} reaffirmed${mergeNote}`,
-      );
-      if (c > 0) setText("");
+      // Pure formatter (unit-tested): surfaces fuzzy merges and the supersession
+      // reason (cardinality vs cross-Predicate contradiction).
+      setMessage(ingestSummaryMessage(data));
+      if ((data.factsCreated?.length ?? 0) > 0) setText("");
     } catch (e) {
       setStatus("error");
       setMessage(e instanceof Error ? e.message : "remember failed");

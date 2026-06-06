@@ -882,3 +882,26 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   `npm test` ✓ (39 files / 175 tests, +1 new). → pass.
 - **Commit**: 9eaaa1e
 - **Saturation**: new-capability/functionality active (V=3) — no flag change.
+
+### Iteration 37 · UX (viewer) · mode=exploit
+- **Change**: carried iter-36's supersession `reason` into the human-facing viewer.
+  Extracted the inline ingest status-message construction into a pure, unit-tested
+  `viewer/lib/ingest-summary.ts` (`ingestSummaryMessage`) and added a contradiction
+  note: a cross-Predicate retirement now reads `✓ 1 created · 2 superseded (1 by
+  contradiction) · 0 reaffirmed` instead of an unexplained count. Closes the
+  follow-up flagged at the end of iter 36.
+- **Net-positive**: improves UX (viewer makes a consequential, otherwise-invisible
+  event legible) AND testability (status-string logic was inline+untested; now a
+  pure function with 5 unit tests). Protects correctness (pure refactor of the
+  existing string), the fuzzy-merge note, the demo. V=3 C=4 S=5.
+- **Design / blast radius**: new pure file `viewer/lib/ingest-summary.ts` (mirrors
+  `graph-model.ts` — framework-free, tested by the MAIN suite via
+  `test/ingest-summary.test.ts`). `page.tsx` swaps ~12 inline lines for one call +
+  one import. Isolated; no API/type/store change.
+- **Files**: viewer/lib/ingest-summary.ts (new), viewer/app/page.tsx (use it),
+  test/ingest-summary.test.ts (new — counts, contradiction note, merge note, empty).
+- **Verification**: main `npm run typecheck` ✓ · `npm run lint` ✓ · `npm test` ✓
+  (40 files / 180 tests, +5 new) · viewer `npm run typecheck` ✓ · `npm run build` ✓.
+  → pass.
+- **Commit**: c22b956
+- **Saturation**: UX active (V=3) — no flag change.
