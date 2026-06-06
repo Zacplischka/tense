@@ -57,6 +57,10 @@ export interface GraphProps {
   height: number;
   /** Entity ids to glow (newly arrived this session). */
   highlightedIds: Set<string>;
+  /** The clicked Entity (ringed for emphasis), or null. */
+  selectedId?: string | null;
+  /** Click a node to select it; click the background to clear (null). */
+  onSelect?: (id: string | null) => void;
 }
 
 const NODE_R = 5; // graph-units; rendered radius scales with zoom
@@ -71,7 +75,7 @@ function endId(end: string | FNode): string {
  * and arrowed, superseded Facts are dashed and greyed, and just-arrived Entities
  * glow green. Labels fade in as you zoom.
  */
-export default function Graph({ data, width, height, highlightedIds }: GraphProps) {
+export default function Graph({ data, width, height, highlightedIds, selectedId, onSelect }: GraphProps) {
   const fgRef = useRef<any>(null);
   const hoverIdRef = useRef<string | null>(null);
   const neighborsRef = useRef<Set<string>>(new Set());
@@ -112,10 +116,10 @@ export default function Graph({ data, width, height, highlightedIds }: GraphProp
     prevNodeCount.current = data.nodes.length;
   }, [data]);
 
-  // Repaint when the glow set changes (sim may already be cool).
+  // Repaint when the glow set or the selection changes (sim may already be cool).
   useEffect(() => {
     fgRef.current?.refresh?.();
-  }, [highlightedIds]);
+  }, [highlightedIds, selectedId]);
 
   const dimmed = (id: string): boolean => {
     const hov = hoverIdRef.current;
@@ -139,6 +143,8 @@ export default function Graph({ data, width, height, highlightedIds }: GraphProp
         neighborsRef.current = node ? adjacency.get(node.id) ?? new Set() : new Set();
         fgRef.current?.refresh?.();
       }}
+      onNodeClick={(node: FNode) => onSelect?.(node.id)}
+      onBackgroundClick={() => onSelect?.(null)}
       onNodeDragEnd={(node: FNode) => {
         node.fx = node.x;
         node.fy = node.y; // pin where dropped (Obsidian-style)
@@ -151,6 +157,7 @@ export default function Graph({ data, width, height, highlightedIds }: GraphProp
       }}
       nodeCanvasObject={(node: FNode, ctx: CanvasRenderingContext2D, scale: number) => {
         const isNew = highlightedIds.has(node.id);
+        const isSelected = node.id === selectedId;
         const dim = dimmed(node.id);
         const x = node.x ?? 0;
         const y = node.y ?? 0;
@@ -158,14 +165,18 @@ export default function Graph({ data, width, height, highlightedIds }: GraphProp
 
         ctx.beginPath();
         ctx.arc(x, y, NODE_R, 0, 2 * Math.PI);
-        ctx.fillStyle = "#eef2ff";
+        ctx.fillStyle = isSelected ? "#c7d2fe" : "#eef2ff";
         ctx.fill();
         if (isNew) {
           ctx.shadowColor = "#22c55e";
           ctx.shadowBlur = 16;
         }
-        ctx.lineWidth = (isNew ? 2.2 : 1.4) / scale;
-        ctx.strokeStyle = isNew ? "#22c55e" : node.id === hoverIdRef.current ? "#4338ca" : "#6366f1";
+        ctx.lineWidth = (isNew ? 2.2 : isSelected ? 2.8 : 1.4) / scale;
+        ctx.strokeStyle = isNew
+          ? "#22c55e"
+          : isSelected || node.id === hoverIdRef.current
+            ? "#4338ca"
+            : "#6366f1";
         ctx.stroke();
         ctx.shadowBlur = 0;
 

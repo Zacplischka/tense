@@ -84,11 +84,11 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   = add pg_trgm GIN + ivfflat indexes via a migration. Deferred until scale matters.
 
 _Functionality/UX focus (user steer, iter 8) — prioritize these:_
-- [UX] **Viewer** (`viewer/`, Next.js) — surveyed iter 9. DONE so far: rich Fact
-  hover tooltip (triple + validity interval + Current/Superseded + reinforcedBy).
-  Remaining ideas: a header summary using `stats` (entity/source/fact counts); a
-  node-click detail panel listing that Entity's Facts; reinforcedBy → link width;
-  error/empty-state polish (empty state exists; error only shows in the header).
+- [UX] **Viewer** (`viewer/`, Next.js). DONE: rich Fact hover tooltip (iter 9);
+  node-click detail panel listing the Entity's Facts (iter 11, via pure
+  `factsForEntity`). Remaining ideas: a header summary using `stats`
+  (entity/source/fact counts); reinforcedBy → link width; error-state polish
+  (error only shows in the header today).
 - ~~[functionality] Expose `limit` + `predicate` on `recall`~~ — DONE (iter 10):
   threaded through recall() + the 3 store rankers + the MCP tool; predicate
   normalized to slug.
@@ -284,3 +284,23 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   `npm test` ✓ (29 files / 127 tests; +1 file, +6 tests vs iter 9).
 - **Commit**: d2da0c2
 - **Saturation**: cleared by fresh survey (all 0); functionality produced V=4.
+
+### Iteration 11 · UX (viewer) · mode=exploit (user-steered)
+- **Change**: Click-to-inspect detail panel in the viewer. Clicking a node opens a
+  right-side panel listing that Entity's Facts — direction (← / →), counterpart,
+  Current/Superseded, validity interval, and reinforced-by count — Current first.
+  Core derivation is a pure, unit-tested `factsForEntity(snapshot, id)` (no extra
+  query — reuses the snapshot already in hand). Graph gains `selectedId`/`onSelect`
+  (click a node to select, background to clear) and rings the selected node.
+- **Net-positive**: improves UX (entity-centric drill-down — the persistent
+  complement to iter 9's transient edge tooltip); protects correctness/graph
+  behavior (additive; node-position stability + Current-from-`expired_at` rule
+  untouched; React-escaped panel). V=4 C=4 S=4.
+- **Files**: viewer/lib/graph-model.ts (factsForEntity), viewer/components/Graph.tsx
+  (select props + handlers + selected ring), viewer/app/page.tsx (state + panel +
+  FactRow), test/entity-facts.test.ts (new, main gate).
+- **Verification**: viewer `npm run typecheck` ✓ · viewer `npm run build` ✓ · main
+  `npm run typecheck` ✓ · `npm run lint` ✓ · `npm test` ✓ (30 files / 132 tests;
+  +1 file, +5 tests vs iter 10).
+- **Commit**: f8b295c
+- **Saturation**: none changed (UX produced V=4).

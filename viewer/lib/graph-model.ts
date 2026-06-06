@@ -71,3 +71,52 @@ export function toGraphData(snapshot: Snapshot): GraphData {
   }
   return { nodes, links };
 }
+
+/** One Fact touching a selected Entity, shaped for the detail panel. */
+export interface EntityFact {
+  id: string;
+  predicate: string;
+  /** "out" = the Entity is the subject; "in" = the Entity is the object. */
+  direction: "out" | "in";
+  /** The counterpart Entity's display name. */
+  other: string;
+  current: boolean;
+  validAt: string | null;
+  invalidAt: string | null;
+  reinforcedBy: number;
+}
+
+/**
+ * The Facts touching one Entity, shaped for the click-to-inspect panel: each with
+ * its direction (Entity as subject vs object), the counterpart name, temporal
+ * interval, Current flag, and provenance count. Current Facts first, then by
+ * predicate, then counterpart — a stable, readable order. Pure: derived from the
+ * already-fetched snapshot, so the panel needs no extra query.
+ */
+export function factsForEntity(snapshot: Snapshot, entityId: string): EntityFact[] {
+  const nameById = new Map(snapshot.entities.map((e) => [e.id, e.name]));
+  const rows: EntityFact[] = [];
+  for (const f of snapshot.facts) {
+    const isSubject = f.subjectId === entityId;
+    const isObject = f.objectId === entityId;
+    if (!isSubject && !isObject) continue;
+    const otherId = isSubject ? f.objectId : f.subjectId;
+    const other = (isSubject ? f.object : f.subject) ?? nameById.get(otherId) ?? otherId;
+    rows.push({
+      id: f.id,
+      predicate: f.predicate,
+      direction: isSubject ? "out" : "in",
+      other,
+      current: f.current,
+      validAt: f.validAt,
+      invalidAt: f.invalidAt,
+      reinforcedBy: f.reinforcedBy ?? 0,
+    });
+  }
+  rows.sort((a, b) => {
+    if (a.current !== b.current) return a.current ? -1 : 1; // Current first
+    if (a.predicate !== b.predicate) return a.predicate < b.predicate ? -1 : 1;
+    return a.other < b.other ? -1 : a.other > b.other ? 1 : 0;
+  });
+  return rows;
+}

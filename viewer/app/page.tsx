@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import type { Snapshot } from "../lib/graph-model";
+import { factsForEntity, type EntityFact, type Snapshot } from "../lib/graph-model";
 
 // Canvas/WebGL graph must be client-only (it touches `window`); it owns its ref.
 const Graph = dynamic(() => import("../components/Graph"), {
@@ -27,6 +27,8 @@ export default function Page() {
   const [text, setText] = useState("");
   const [status, setStatus] = useState<IngestStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const seen = useRef<Set<string>>(new Set());
@@ -113,6 +115,12 @@ export default function Page() {
 
   const currentCount = graphData.links.filter((l) => l.current).length;
   const supersededCount = graphData.links.length - currentCount;
+
+  // Click-to-inspect: the selected Entity and its Facts, derived from the snapshot
+  // already in hand (no extra request). Entities are append-only, so a selection
+  // never goes stale.
+  const selectedEntity = selectedId ? snapshot.entities.find((e) => e.id === selectedId) ?? null : null;
+  const selectedFacts: EntityFact[] = selectedId ? factsForEntity(snapshot, selectedId) : [];
 
   // --- growth glow: green-highlight genuinely new Entities -----------------
   useEffect(() => {
@@ -236,14 +244,81 @@ export default function Page() {
           overflow: "hidden",
         }}
       >
-        <Graph data={graphData} width={graphWidth} height={GRAPH_HEIGHT} highlightedIds={highlightedIds} />
+        <Graph
+          data={graphData}
+          width={graphWidth}
+          height={GRAPH_HEIGHT}
+          highlightedIds={highlightedIds}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
         {snapshot.entities.length === 0 && (
           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#94a3b8", fontSize: 15, pointerEvents: "none" }}>
             No Facts yet — remember something.
           </div>
         )}
+        {selectedEntity && (
+          <aside
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: 300,
+              background: "rgba(255,255,255,0.97)",
+              borderLeft: "1px solid #e2e8f0",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "-8px 0 24px -18px rgba(0,0,0,0.25)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderBottom: "1px solid #eef2f7" }}>
+              <strong style={{ fontSize: 15, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {selectedEntity.name}
+              </strong>
+              <span style={{ fontSize: 12, color: "#94a3b8" }}>
+                {selectedFacts.length} fact{selectedFacts.length === 1 ? "" : "s"}
+              </span>
+              <button
+                onClick={() => setSelectedId(null)}
+                aria-label="Close"
+                style={{ marginLeft: "auto", border: "none", background: "transparent", fontSize: 18, lineHeight: 1, color: "#64748b", cursor: "pointer" }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ overflowY: "auto", padding: "2px 14px 14px" }}>
+              {selectedFacts.length === 0 ? (
+                <div style={{ color: "#94a3b8", fontSize: 13, padding: "10px 0" }}>No Facts touch this Entity.</div>
+              ) : (
+                selectedFacts.map((f) => <FactRow key={f.id} fact={f} />)
+              )}
+            </div>
+          </aside>
+        )}
       </div>
     </main>
+  );
+}
+
+function FactRow({ fact }: { fact: EntityFact }) {
+  const arrow = fact.direction === "out" ? "→" : "←";
+  const from = fact.validAt ? fact.validAt.slice(0, 10) : "—";
+  const to = fact.current ? "now" : fact.invalidAt ? fact.invalidAt.slice(0, 10) : "—";
+  const sources = fact.reinforcedBy > 0 ? ` · ${fact.reinforcedBy} source${fact.reinforcedBy === 1 ? "" : "s"}` : "";
+  return (
+    <div style={{ padding: "8px 0", borderBottom: "1px solid #f1f5f9", opacity: fact.current ? 1 : 0.6 }}>
+      <div style={{ fontSize: 13.5, color: "#1e293b" }}>
+        <span style={{ color: "#94a3b8" }} title={fact.direction === "out" ? "this Entity is the subject" : "this Entity is the object"}>
+          {arrow}
+        </span>{" "}
+        <span style={{ color: "#4f46e5" }}>{fact.predicate}</span> <b>{fact.other}</b>
+      </div>
+      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+        {fact.current ? "Current" : "Superseded"} · valid {from} → {to}
+        {sources}
+      </div>
+    </div>
   );
 }
 
