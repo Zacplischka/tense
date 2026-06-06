@@ -79,9 +79,12 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   not configured (deferred — formatting is consistent enough; lower value).
 - ~~[new-capability] An `entities` MCP tool~~ — DONE (iter 6): list/search
   Entities with Current-Fact degree, `TemporalGraphStore.listEntities()`.
-- [perf] Demo-scale only today: entity-resolver trigram fuzzy match and the
-  recall rankers do seq scans (code says "fine at demo scale"). A real perf turn
-  = add pg_trgm GIN + ivfflat indexes via a migration. Deferred until scale matters.
+- [perf] PARTIALLY DONE (iter 24): pg_trgm GIN index on entities.normalized_name
+  (migration 0004) now accelerates the `entities` ILIKE search. STILL deferred: the
+  entity RESOLVER's `similarity() >=` fuzzy lookup (needs a GUC-safe query rewrite)
+  and an ivfflat index on facts.embedding for rankBySemantic (approximate; needs
+  lists tuning). Also: `isCurrent` in domain/types.ts is dead (0 refs) — tiny
+  cruft-removal candidate (V≈2 alone).
 
 _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - [UX] **Viewer** (`viewer/`, Next.js). DONE: rich Fact hover tooltip (iter 9);
@@ -583,3 +586,23 @@ priority:_
   (37 files / 167 tests; +1 file, +4 tests vs iter 21). Build unaffected (no src).
 - **Commit**: 6953f71
 - **Saturation**: none changed (tests produced V=3).
+
+### Iteration 24 · performance · mode=explore
+- **Change**: Add migration `0004_entities_trgm_index.sql` — a pg_trgm GIN index on
+  `entities.normalized_name`. The `entities` tool's name search
+  (`normalized_name ILIKE '%q%'`) was an O(n) seq scan (B-tree can't serve a
+  leading-wildcard ILIKE); the index serves it from trigrams, so entity
+  browse/search scales. Transparent to results; the resolver's `similarity()` path
+  is deliberately untouched (its acceleration needs a GUC-safe rewrite — deferred).
+  Explore turn → invested in performance (never-touched dimension).
+- **Net-positive**: improves performance (a user-facing query path, the standard
+  fix); protects correctness (additive idempotent index; results unchanged; full
+  suite green). V=3 C=4 S=4.
+- **Files**: migrations/0004_entities_trgm_index.sql (new),
+  test/entities-index.integration.test.ts (new).
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm test` ✓
+  (38 files / 169 tests; +1 file, +2). The new test proves the index EXISTS and
+  that the planner USES it (EXPLAIN under enable_seqscan=off contains the index
+  name) — functional, not decorative.
+- **Commit**: 857d9bb
+- **Saturation**: none changed (performance produced V=3).
