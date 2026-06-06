@@ -60,7 +60,6 @@ describe.skipIf(!hasKey)("extraction smoke (live OpenRouter)", () => {
     const predicateAccuracy = matchedFacts ? predicateHits / matchedFacts : 0;
     const validAtAccuracy = validAtExpected ? validAtHits / validAtExpected : 1;
 
-    // eslint-disable-next-line no-console
     console.log(
       `[extraction smoke] entityRecall=${entityRecall.toFixed(2)} factRecall=${factRecall.toFixed(
         2,

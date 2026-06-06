@@ -11,11 +11,13 @@ Source of truth for the autonomous improvement loop. Newest log entries last.
   - typecheck: `npm run typecheck`  (`tsc -p tsconfig.check.json`, noEmit, covers src+test+scripts)
   - build: `npm run build`          (`tsc -p tsconfig.json` → dist)
   - test: `npm test`                (`vitest run` — 23 files / 95 tests at bootstrap)
+  - lint: `npm run lint`            (`eslint . --max-warnings 0`; added iter 7)
 - **Test prerequisites**: Postgres must be up (`pnpm db:up`; container `tense-pg`,
   pgvector/pg16 on :5432). Vitest globalSetup creates+migrates the isolated
   `tense_test` DB. Most tests are integration tests against real Postgres;
   `fileParallelism: false` (shared DB, serial files).
-- **Lint/format**: none configured (no eslint/prettier).
+- **Lint/format**: ESLint flat config (`eslint.config.js`) since iter 7 — eslint 10
+  + typescript-eslint 8 (non-type-checked). Green on the current tree. No Prettier.
 - **Git**: available. Commit each iteration as `codeloop(<dimension>): <summary>`.
 - **Baseline (pre-iteration-1)**: typecheck ✓, 95/95 tests ✓, Postgres healthy.
 
@@ -47,19 +49,13 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   the message text. Not a bug. Don't "fix" it.
 - ~~[tests] Pure helpers `clampLimit`/`formatVector`/`normalizeName`~~ — DONE
   (iter 2): `test/store-helpers.test.ts`.
-- [DX/tooling] No ESLint/Prettier; a strict, isolated config would catch drift.
-  (Higher blast radius — may flag many existing lines; needs a careful config.)
 - ~~[docs] README worked example of tool JSON I/O~~ — DONE (iter 4): captured
   from a real StubExtractor run, throwaway capture script deleted.
 - ~~[readability] `expireFacts`/`supersedeAndInsert` shared close loop~~ — DONE
   (iter 3): extracted `closeFactsTx`.
-- [DX/tooling] (still open) ESLint/Prettier — biggest remaining lever. Surface
-  measured in iter-5 fresh survey: only 3 `any` in src, no stray `console`, BUT a
-  recommended config also flags the several *intentional* empty `catch {}` blocks
-  (env.ts, recall.ts, pipeline.ts embedding, contradiction.ts) → needs
-  `no-empty:[allowEmptyCatch]` (or per-line disables), and it adds eslint +
-  typescript-eslint devDeps + a lockfile change. Budget a whole iteration; aim
-  for a flat config that passes green on the current tree with zero source edits.
+- ~~[DX/tooling] ESLint~~ — DONE (iter 7): flat config, green with zero functional
+  source edits (only removed one dead `eslint-disable` directive). Prettier still
+  not configured (deferred — formatting is consistent enough; lower value).
 - ~~[new-capability] An `entities` MCP tool~~ — DONE (iter 6): list/search
   Entities with Current-Fact degree, `TemporalGraphStore.listEntities()`.
 - [perf] Demo-scale only today: entity-resolver trigram fuzzy match and the
@@ -173,3 +169,22 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   (27 files / 118 tests; +1 file, +4 tests vs iter 5).
 - **Commit**: ad6a4d5
 - **Saturation**: none changed (new-capability produced V=3, not low-value).
+
+### Iteration 7 · DX/tooling · mode=exploit
+- **Change**: Add ESLint (the thrice-deferred lever). Flat `eslint.config.js`
+  (eslint 10 + typescript-eslint 8, non-type-checked: js.recommended +
+  tseslint.recommended + node globals), `lint` script (`eslint . --max-warnings 0`),
+  devDeps (eslint, typescript-eslint, @eslint/js, globals). Tuned to pass green on
+  the current tree with two deliberate choices documented in-config:
+  `no-empty:{allowEmptyCatch}` (genuine best-effort paths) and `no-explicit-any:off`
+  (pg/HTTP boundary + test helpers). Only functional source touch: removed one dead
+  `eslint-disable no-console` directive in a smoke test (what `--fix` would do).
+- **Net-positive**: improves DX/tooling (standard static analysis now gates the
+  repo; catches drift `tsc` doesn't); protects all code axes (config + devDeps only,
+  zero behavior change; fully revertible). V=4 C=4 S=3.
+- **Files**: eslint.config.js (new), package.json (script + devDeps), pnpm-lock.yaml,
+  test/extraction.smoke.integration.test.ts (dead directive removed).
+- **Verification**: `npm run lint` ✓ (0 errors, 0 warnings) · `npm run typecheck` ✓
+  · `npm run build` ✓ · `npm test` ✓ (27 files / 118 tests, unchanged).
+- **Commit**: e95343b
+- **Saturation**: none changed (DX/tooling produced V=4, not low-value).
