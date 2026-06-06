@@ -1,0 +1,2 @@
+# Dev-only, offline. Not shipped with the TypeScript server (ADR 0003).
+dspy-ai>=2.5

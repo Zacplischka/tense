@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defaultPredicateRegistry, type PredicateRegistry } from "../supersession/registry.js";
 
 /**
@@ -37,6 +40,58 @@ Rules:
 - invalid_at: an ISO-8601 date for when it stopped being true, if stated;
   otherwise null.
 - Output only the JSON object.`;
+
+/**
+ * A DSPy-compiled static asset (ADR 0003): optimized instructions + bootstrapped
+ * few-shot demonstrations. Shipped as JSON; no Python at runtime.
+ */
+export interface CompiledExtraction {
+  instructions: string;
+  demos: Array<{ source: string; output: unknown }>;
+  meta?: Record<string, unknown>;
+}
+
+const COMPILED_PATH = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "dspy",
+  "compiled",
+  "extraction.json",
+);
+
+let cached: CompiledExtraction | null | undefined;
+
+/** Load the DSPy-compiled asset if present; null when none has been exported. */
+export function loadCompiledExtraction(): CompiledExtraction | null {
+  if (cached !== undefined) return cached;
+  try {
+    cached = existsSync(COMPILED_PATH)
+      ? (JSON.parse(readFileSync(COMPILED_PATH, "utf8")) as CompiledExtraction)
+      : null;
+  } catch {
+    cached = null;
+  }
+  return cached;
+}
+
+/**
+ * Resolve the system prompt + few-shot block from a compiled asset, falling back
+ * to the hand-tuned baseline when none exists. Pure (asset injected) so it is
+ * unit-testable — this is the seam DSPy's offline output plugs into.
+ */
+export function resolveExtractionPrompt(compiled: CompiledExtraction | null): {
+  system: string;
+  fewShot: string;
+} {
+  if (!compiled) return { system: EXTRACTION_SYSTEM_PROMPT, fewShot: "" };
+  const fewShot = compiled.demos.length
+    ? `Examples:\n${compiled.demos
+        .map((d) => `Text: ${d.source}\nJSON: ${JSON.stringify(d.output)}`)
+        .join("\n\n")}\n\n`
+    : "";
+  return { system: compiled.instructions || EXTRACTION_SYSTEM_PROMPT, fewShot };
+}
 
 export function buildExtractionUserPrompt(
   sourceText: string,

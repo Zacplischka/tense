@@ -21,3 +21,22 @@ A **dev-only, offline** Python pipeline that optimizes the extraction prompts ag
 ## Blocked by
 
 - `13-eval-harness-fair-baseline`
+
+## Comments
+
+✅ **Completed 2026-06-06** (no-lift outcome — the explicitly-acceptable "done").
+
+- **Shipped seam (TS):** `src/extraction/prompts.ts` loads an optional
+  `dspy/compiled/extraction.json` (optimized instructions + few-shot demos) and
+  falls back to the hand-tuned baseline when absent. The extractor consumes it;
+  `resolveExtractionPrompt` is pure + unit-tested. No Python at runtime.
+- **Offline pipeline (Python, fenced in `dspy/`):** `optimize.py` evaluates
+  baseline triple-F1, compiles `BootstrapFewShot` against the same metric, prints
+  a lift report, and exports the asset **only if it beats the baseline**.
+  `scripts/export-gold.ts` feeds the gold set to Python decoupled from TS.
+- **Finding:** the baseline already scores triple-F1 = 1.00 / valid_at = 1.00 on
+  the gold set (`pnpm eval`), so there is no lift to capture — baseline ships,
+  nothing exported. The pipeline captures lift once slice 11's gold set grows
+  harder extraction cases.
+- **Env caveat documented:** this box runs Python 3.14 (ahead of DSPy support;
+  `ensurepip`/venv fails) — use a 3.11–3.12 interpreter to run the pipeline.

@@ -1,7 +1,11 @@
 import { z } from "zod";
 import type { ProviderClient } from "../provider/types.js";
 import { defaultPredicateRegistry, type PredicateRegistry } from "../supersession/registry.js";
-import { EXTRACTION_SYSTEM_PROMPT, buildExtractionUserPrompt } from "./prompts.js";
+import {
+  buildExtractionUserPrompt,
+  loadCompiledExtraction,
+  resolveExtractionPrompt,
+} from "./prompts.js";
 import { ExtractionError, type ExtractionResult, type Extractor } from "./types.js";
 
 const ResponseSchema = z.object({
@@ -40,9 +44,11 @@ export class LlmExtractor implements Extractor {
   }
 
   async extract(sourceText: string, knownEntities: string[] = []): Promise<ExtractionResult> {
+    // Use the DSPy-compiled prompt if one has been exported; else the baseline.
+    const { system, fewShot } = resolveExtractionPrompt(loadCompiledExtraction());
     const { text } = await this.provider.complete({
-      system: EXTRACTION_SYSTEM_PROMPT,
-      prompt: buildExtractionUserPrompt(sourceText, knownEntities, this.registry),
+      system,
+      prompt: fewShot + buildExtractionUserPrompt(sourceText, knownEntities, this.registry),
       json: true,
       temperature: 0,
       model: this.opts.model,

@@ -1,0 +1,84 @@
+[
+  {
+    "source": "Zach reports to Alice.",
+    "entities": [
+      "Zach",
+      "Alice"
+    ],
+    "facts": [
+      {
+        "subject": "Zach",
+        "predicate": "reports-to",
+        "object": "Alice",
+        "valid_at": null
+      }
+    ]
+  },
+  {
+    "source": "On 2024-06-01, Zach started reporting to Bob.",
+    "entities": [
+      "Zach",
+      "Bob"
+    ],
+    "facts": [
+      {
+        "subject": "Zach",
+        "predicate": "reports-to",
+        "object": "Bob",
+        "valid_at": "2024-06-01"
+      }
+    ]
+  },
+  {
+    "source": "Zach now reports to Carol.",
+    "entities": [
+      "Zach",
+      "Carol"
+    ],
+    "facts": [
+      {
+        "subject": "Zach",
+        "predicate": "reports-to",
+        "object": "Carol",
+        "valid_at": null
+      }
+    ]
+  },
+  {
+    "source": "Dana lives in Berlin and knows Alice.",
+    "entities": [
+      "Dana",
+      "Berlin",
+      "Alice"
+    ],
+    "facts": [
+      {
+        "subject": "Dana",
+        "predicate": "lives-in",
+        "object": "Berlin",
+        "valid_at": null
+      },
+      {
+        "subject": "Dana",
+        "predicate": "knows",
+        "object": "Alice",
+        "valid_at": null
+      }
+    ]
+  },
+  {
+    "source": "Alice left Acme.",
+    "entities": [
+      "Alice",
+      "Acme"
+    ],
+    "facts": [
+      {
+        "subject": "Alice",
+        "predicate": "left",
+        "object": "Acme",
+        "valid_at": null
+      }
+    ]
+  }
+]
