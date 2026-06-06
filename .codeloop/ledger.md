@@ -162,6 +162,18 @@ priority:_
 - [UX/viewer] stats-backed header summary + a clearer "connection lost" banner
   on poll failure (today only a faint header ⚠). Low value; bundle if wanted.
 - [DX] Prettier (formatting is consistent enough that ESLint suffices; low value).
+- [DX] CI workflow (GitHub Actions running the verify gate + a Postgres service) —
+  considered iter 31, NOT added: the repo has NO git remote, so it's speculative
+  (nothing would run it), and an Actions workflow can't be verified in this
+  environment (no Actions runtime). Revisit if/when a GitHub remote exists.
+
+_Steady-state note (iter 31): the high/medium-value backlog is exhausted. The
+functionality/UX focus (user steer iter 8) is complete; the MCP surface, viewer,
+tests, lint, perf index, and 7 ADRs are in place. Remaining items are
+deferred-by-decision (concurrency, ADR 0007), risky (resolver/ivfflat perf),
+marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
+(CI w/o a remote). Expect mostly SCOUT until new direction or a real trigger
+(e.g. concurrency, scale) appears._
 
 ## Log
 
@@ -746,3 +758,19 @@ priority:_
   (code unchanged); full suite not run (markdown-only addition).
 - **Commit**: 6b15180
 - **Saturation**: none changed (docs produced V=3).
+
+### Iteration 31 · — · mode=scout
+- **Outcome**: No code change. Diversify blocked docs(30). Surveyed the rest; nothing
+  cleared the net-positive bar without forcing: the concurrency fix is deferred by
+  ADR 0007 (just decided — overriding it now would be incoherent); a CI workflow is
+  speculative (no git remote) AND unverifiable here (no Actions runtime); perf is
+  risky/scale-only; new-capability would be sprawl; UX/cruft/DX leftovers are V≈2.
+  Per the hard rules, SCOUT > forcing.
+- **Findings (recorded in Backlog)**: CI considered-and-deferred (no remote); added a
+  steady-state note — the functionality/UX focus is complete and the high/medium
+  backlog is exhausted, so most turns will SCOUT until new direction or a real
+  trigger (concurrency, scale) appears.
+- **Files**: none (scout) — ledger only.
+- **Verification**: n/a (no code change); tree green at start (lint ✓, 174 tests).
+- **Commit**: 5752a52 (ledger only)
+- **Saturation**: none changed (no dimension acted on); 3rd scout of the run (20, 29, 31).
