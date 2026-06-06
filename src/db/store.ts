@@ -131,8 +131,16 @@ function mapRecalledRow(row: Record<string, unknown>): RecalledFact {
   };
 }
 
-/** Clamp an externally-supplied LIMIT to a safe positive integer. */
-function clampLimit(limit: number): number {
+/**
+ * Clamp an externally-supplied LIMIT to a safe integer in [1, 200]. The result
+ * is string-interpolated into `LIMIT ${lim}` (Postgres rejects a parameterized
+ * LIMIT in some positions), so this is the guard that keeps a caller-supplied
+ * limit — NaN, Infinity, a float, a negative, or an absurd value — from ever
+ * reaching SQL as anything but a small positive integer. Always returns an
+ * integer: floor first, then 0/NaN fall to 1, negatives clamp up to 1, and
+ * anything over 200 (incl. Infinity) clamps down to 200.
+ */
+export function clampLimit(limit: number): number {
   return Math.min(Math.max(Math.floor(limit) || 1, 1), 200);
 }
 

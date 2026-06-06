@@ -40,14 +40,19 @@ clears all flags._
 
 _Discovered opportunities not yet acted on (scout output / deferred ideas)._
 
-- [correctness] `recall`/`history` MCP tools don't honor the server's documented
-  "errors returned as isError, never thrown" contract — only `remember` wraps in
-  try/catch. (Partially addressed: the new `stats` tool added in iter 1 follows
-  the contract; recall/history still bare.)
+- ~~[correctness] `recall`/`history` isError contract~~ — INVALIDATED (iter 2):
+  the MCP SDK (`server/mcp.js` L135-142) already wraps every tool handler in
+  try/catch and converts thrown errors to `isError` via `createToolError`. The
+  server never crashes regardless; `remember`'s explicit catch only customizes
+  the message text. Not a bug. Don't "fix" it.
+- ~~[tests] Pure helpers `clampLimit`/`formatVector`/`normalizeName`~~ — DONE
+  (iter 2): `test/store-helpers.test.ts`.
 - [DX/tooling] No ESLint/Prettier; a strict, isolated config would catch drift.
-- [tests] Pure helpers `clampLimit`/`formatVector`/`normalizeName` are only
-  covered indirectly — add focused unit tests.
+  (Higher blast radius — may flag many existing lines; needs a careful config.)
 - [docs] README has no worked example of tool JSON I/O.
+- [readability] `expireFacts` and `supersedeAndInsert` (store.ts) share an
+  identical in-transaction close-facts loop — extract a private helper. Touches
+  core but is covered by supersession + contradiction integration tests.
 
 ## Log
 
@@ -65,3 +70,21 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   (24 files / 99 tests; +1 file, +4 tests vs baseline).
 - **Commit**: cd6e474
 - **Saturation**: none changed.
+
+### Iteration 2 · tests · mode=exploit
+- **Change**: Add `test/store-helpers.test.ts` — pure unit tests for the store's
+  SQL-safety helpers; export `clampLimit` (was module-private) and document its
+  [1,200]-integer contract. 12 tests pinning `clampLimit` (NaN/±Infinity/float/
+  negative/over-max), `formatVector` (pgvector literal), `normalizeName`.
+- **Net-positive**: improves tests (locks down the LIMIT sanitizer that's
+  string-interpolated into queries — a regression there would be a SQL-injection
+  surface); protects correctness/behavior (additive new file + one `export`
+  keyword + comment; no logic changed). V=3 C=5 S=5.
+- **Survey note**: invalidated the iter-1 backlog "recall/history isError"
+  candidate — the MCP SDK already converts thrown handler errors to isError, so
+  it was a non-bug. Recorded in Backlog.
+- **Files**: src/db/store.ts (export + doc only), test/store-helpers.test.ts.
+- **Verification**: `npm run typecheck` ✓ · `npm test` ✓
+  (25 files / 111 tests; +1 file, +12 tests vs iter 1).
+- **Commit**: c0761e4
+- **Saturation**: none changed (tests produced V=3, not low-value).
