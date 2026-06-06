@@ -32,6 +32,8 @@ export interface SnapshotFact {
    * pure-mapping tests stay terse.
    */
   learnedAt?: string;
+  /** Source labels asserting this Fact (provenance behind reinforcedBy). Optional. */
+  citedBy?: string[];
 }
 
 export interface Snapshot {
@@ -94,6 +96,8 @@ export interface EntityFact {
   reinforcedBy: number;
   /** Transaction time (when the system learned it); null if the snapshot omits it. */
   learnedAt: string | null;
+  /** Source labels asserting this Fact (provenance behind reinforcedBy). */
+  citedBy: string[];
 }
 
 /**
@@ -123,6 +127,7 @@ export function factsForEntity(snapshot: Snapshot, entityId: string): EntityFact
       invalidAt: f.invalidAt,
       reinforcedBy: f.reinforcedBy ?? 0,
       learnedAt: f.learnedAt ?? null,
+      citedBy: f.citedBy ?? [],
     });
   }
   rows.sort((a, b) => {

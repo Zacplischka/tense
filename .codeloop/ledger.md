@@ -1402,3 +1402,26 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Commit**: 5e540b2
 - **Saturation**: new-capability/functionality active (V=3) — clean opt-in win, not
   saturated this turn. Backlog #1 (citing-sources) done.
+
+### Iteration 58 · UX (viewer) · mode=exploit
+- **Change**: the viewer detail panel now reveals WHICH Sources assert each Fact —
+  the "N sources" text gains a hover `title` listing the Source labels (e.g.
+  "Sources: org-q1, org-q2"). Human-facing completion of iter 57 (citedBy on the
+  recall API), via snapshot enrichment — the API→viewer pattern of iters 37 (reason)
+  and 41 (learnedAt). On-hover so it adds zero visual clutter.
+- **Net-positive**: improves UX (provenance audit in the viewer — the count alone
+  didn't say which). Protects the panel layout (hover-only) and graph rendering.
+  V=3 C=4 S=4.
+- **Why UX**: diversify blocks the last two dims (functionality 57, perf 56); UX is
+  steering-primary and open (last 53).
+- **Design / blast radius**: snapshot gains a per-Fact `array_agg(source label)`
+  subquery (null label → "(unlabeled)"); `SnapshotFact.citedBy?` OPTIONAL (test
+  fixtures terse), `EntityFact.citedBy: string[]`. No API/store change (viewer-side
+  only). FactRow's source string became a `<span title=…>`.
+- **Files**: viewer/lib/snapshot.ts (cited_by subquery + map), viewer/lib/graph-model.ts
+  (SnapshotFact/EntityFact citedBy + factsForEntity), viewer/app/page.tsx (FactRow
+  hover), test/graph-model.test.ts (+1: citedBy flows through; default []).
+- **Verification**: `npm run check` → EXIT=0 (40 files / 197 tests, +1; viewer
+  typecheck + build ✓). → pass.
+- **Commit**: c27efa1
+- **Saturation**: UX active (V=3) — no flag change.

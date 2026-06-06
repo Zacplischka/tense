@@ -35,7 +35,10 @@ export async function fetchSnapshot(): Promise<Snapshot> {
       `SELECT f.id, f.subject_id, f.predicate, f.object_id,
               (f.expired_at IS NULL) AS current, f.valid_at, f.invalid_at, f.created_at,
               subj.name AS subject_name, obj.name AS object_name,
-              (SELECT count(*)::int FROM fact_sources fs WHERE fs.fact_id = f.id) AS reinforced_by
+              (SELECT count(*)::int FROM fact_sources fs WHERE fs.fact_id = f.id) AS reinforced_by,
+              (SELECT array_agg(s2.label ORDER BY s2.created_at, s2.id)
+                 FROM fact_sources fs JOIN sources s2 ON s2.id = fs.source_id
+                WHERE fs.fact_id = f.id) AS cited_by
        FROM facts f
        JOIN entities subj ON subj.id = f.subject_id
        JOIN entities obj  ON obj.id  = f.object_id
@@ -57,6 +60,9 @@ export async function fetchSnapshot(): Promise<Snapshot> {
         object: r.object_name as string,
         reinforcedBy: (r.reinforced_by as number) ?? 0,
         learnedAt: r.created_at ? new Date(r.created_at).toISOString() : undefined,
+        // Source labels asserting this Fact (null label → "(unlabeled)") — the
+        // provenance behind the count, for the detail panel's on-hover audit.
+        citedBy: ((r.cited_by as Array<string | null> | null) ?? []).map((l) => l ?? "(unlabeled)"),
       })),
     };
   } catch (err) {

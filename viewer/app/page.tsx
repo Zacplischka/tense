@@ -455,7 +455,6 @@ function FactRow({ fact, onSelect }: { fact: EntityFact; onSelect: (id: string) 
   // Transaction time — when the system learned the Fact (the other bi-temporal
   // axis); distinct from the valid interval above.
   const learned = fact.learnedAt ? ` · learned ${fact.learnedAt.slice(0, 10)}` : "";
-  const sources = fact.reinforcedBy > 0 ? ` · ${fact.reinforcedBy} source${fact.reinforcedBy === 1 ? "" : "s"}` : "";
   return (
     <div style={{ padding: "8px 0", borderBottom: "1px solid #f1f5f9", opacity: fact.current ? 1 : 0.6 }}>
       <div style={{ fontSize: 13.5, color: "#1e293b" }}>
@@ -485,7 +484,12 @@ function FactRow({ fact, onSelect }: { fact: EntityFact; onSelect: (id: string) 
       <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
         {fact.current ? "Current" : "Superseded"} · valid {from} → {to}
         {learned}
-        {sources}
+        {fact.reinforcedBy > 0 && (
+          <span title={fact.citedBy.length ? `Sources: ${fact.citedBy.join(", ")}` : undefined}>
+            {" · "}
+            {fact.reinforcedBy} source{fact.reinforcedBy === 1 ? "" : "s"}
+          </span>
+        )}
       </div>
     </div>
   );

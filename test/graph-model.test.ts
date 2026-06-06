@@ -84,8 +84,8 @@ describe("factsForEntity", () => {
   const snapshot: Snapshot = {
     entities,
     facts: [
-      { id: "f1", subjectId: "zach", predicate: "reports-to", objectId: "alice", current: false, validAt: "2024-01-01", invalidAt: "2024-06-01", reinforcedBy: 1, learnedAt: "2025-09-12T18:04:51.880Z" },
-      { id: "f2", subjectId: "zach", predicate: "reports-to", objectId: "bob", current: true, validAt: "2024-06-01", invalidAt: null, reinforcedBy: 2, learnedAt: "2025-09-12T18:04:53.217Z" },
+      { id: "f1", subjectId: "zach", predicate: "reports-to", objectId: "alice", current: false, validAt: "2024-01-01", invalidAt: "2024-06-01", reinforcedBy: 1, learnedAt: "2025-09-12T18:04:51.880Z", citedBy: ["q1"] },
+      { id: "f2", subjectId: "zach", predicate: "reports-to", objectId: "bob", current: true, validAt: "2024-06-01", invalidAt: null, reinforcedBy: 2, learnedAt: "2025-09-12T18:04:53.217Z", citedBy: ["q2", "q3"] },
     ],
   };
 
@@ -97,12 +97,22 @@ describe("factsForEntity", () => {
     ]);
   });
 
-  it("defaults learnedAt to null when the snapshot omits it", () => {
+  it("defaults learnedAt to null and citedBy to [] when the snapshot omits them", () => {
     const noTx: Snapshot = {
       entities,
       facts: [{ id: "f1", subjectId: "zach", predicate: "knows", objectId: "alice", current: true, validAt: null, invalidAt: null }],
     };
-    expect(factsForEntity(noTx, "zach")[0]?.learnedAt).toBeNull();
+    const [row] = factsForEntity(noTx, "zach");
+    expect(row?.learnedAt).toBeNull();
+    expect(row?.citedBy).toEqual([]);
+  });
+
+  it("carries citedBy (the Source labels asserting each Fact) to the panel rows", () => {
+    const rows = factsForEntity(snapshot, "zach");
+    expect(rows.map((r) => r.citedBy)).toEqual([
+      ["q2", "q3"], // f2 (Current) sorts first
+      ["q1"], // f1 (superseded)
+    ]);
   });
 
   it("exposes the counterpart Entity id so the panel can navigate to it", () => {
