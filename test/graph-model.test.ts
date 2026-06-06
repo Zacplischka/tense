@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toGraphData, type Snapshot } from "../viewer/lib/graph-model.js";
+import { factLinkWidth, toGraphData, type Snapshot } from "../viewer/lib/graph-model.js";
 
 const entities = [
   { id: "zach", name: "Zach" },
@@ -55,5 +55,27 @@ describe("toGraphData", () => {
       ],
     };
     expect(toGraphData(snapshot).links).toHaveLength(0);
+  });
+});
+
+describe("factLinkWidth", () => {
+  it("keeps superseded edges thin regardless of source count", () => {
+    expect(factLinkWidth(false, 1)).toBe(0.8);
+    expect(factLinkWidth(false, 9)).toBe(0.8);
+  });
+
+  it("grows a Current edge gently with each reinforcing Source", () => {
+    expect(factLinkWidth(true, 1)).toBe(1.4);
+    expect(factLinkWidth(true, 2)).toBeCloseTo(2.0);
+    expect(factLinkWidth(true, 3)).toBeCloseTo(2.6);
+  });
+
+  it("caps width so a heavily-cited edge can't blow out the layout", () => {
+    expect(factLinkWidth(true, 5)).toBeCloseTo(3.8);
+    expect(factLinkWidth(true, 100)).toBeCloseTo(3.8);
+  });
+
+  it("treats a degenerate 0/<1 count as the base width", () => {
+    expect(factLinkWidth(true, 0)).toBe(1.4);
   });
 });

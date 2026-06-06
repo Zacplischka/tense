@@ -182,7 +182,7 @@ export default function Page() {
         <div style={{ display: "flex", gap: 18, alignItems: "center", marginTop: 8, fontSize: 13, color: "#475569" }}>
           <Legend solid label={`Current (${currentCount})`} />
           <Legend solid={false} label={`Superseded (${supersededCount})`} />
-          <span style={{ color: "#94a3b8" }}>· drag · scroll to zoom · hover to focus</span>
+          <span style={{ color: "#94a3b8" }}>· thicker = more sources · drag · scroll to zoom · click a node</span>
           <span style={{ marginLeft: "auto", color: error ? "#dc2626" : "#94a3b8" }}>
             {error ? `⚠ ${error}` : `live · ${POLL_MS}ms`}
           </span>

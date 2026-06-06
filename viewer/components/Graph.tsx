@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import ForceGraph2D from "react-force-graph-2d";
+import { factLinkWidth } from "../lib/graph-model";
 
 /** Runtime node/link shapes — the force-graph library adds x/y/vx/vy/fx/fy. */
 type FNode = { id: string; name: string; x?: number; y?: number; fx?: number; fy?: number };
@@ -202,7 +203,7 @@ export default function Graph({ data, width, height, highlightedIds, selectedId,
         if (faded) return "rgba(148,163,184,0.12)";
         return l.current ? "#64748b" : "#cbd5e1";
       }}
-      linkWidth={(l: FLink) => (l.current ? 1.4 : 0.8)}
+      linkWidth={(l: FLink) => factLinkWidth(l.current, l.reinforcedBy ?? 1)}
       linkLineDash={(l: FLink) => (l.current ? null : [3, 3])}
       linkDirectionalArrowLength={(l: FLink) => (l.current ? 3.5 : 0)}
       linkDirectionalArrowRelPos={0.94}

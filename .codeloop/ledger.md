@@ -85,10 +85,10 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
 
 _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - [UX] **Viewer** (`viewer/`, Next.js). DONE: rich Fact hover tooltip (iter 9);
-  node-click detail panel listing the Entity's Facts (iter 11, via pure
-  `factsForEntity`). Remaining ideas: a header summary using `stats`
-  (entity/source/fact counts); reinforcedBy → link width; error-state polish
-  (error only shows in the header today).
+  node-click detail panel (iter 11); reinforcedBy → link width + discoverability
+  hints (iter 13, via pure `factLinkWidth`). Remaining (lower value): a header
+  summary using `stats` (entity/source/fact counts — most are already shown);
+  error-state polish (error only shows in the header today).
 - ~~[functionality] Expose `limit` + `predicate` on `recall`~~ — DONE (iter 10):
   threaded through recall() + the 3 store rankers + the MCP tool; predicate
   normalized to slug.
@@ -324,3 +324,21 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   `npm test` ✓ (31 files / 137 tests; +1 file, +5 tests vs iter 11).
 - **Commit**: 94e295a
 - **Saturation**: none changed (functionality produced V=3).
+
+### Iteration 13 · UX (viewer) · mode=exploit (user-steered)
+- **Change**: Encode provenance strength as edge thickness in the viewer — a
+  Current Fact's link width grows gently with its `reinforcedBy` count (capped),
+  while superseded edges stay thin (Current-vs-superseded remains the primary
+  read). Logic is a pure, unit-tested `factLinkWidth(current, reinforcedBy)` wired
+  into the graph's `linkWidth`. Also refreshed the header hint ("thicker = more
+  sources · … · click a node") — the iter-11 click-panel previously had no hint.
+- **Net-positive**: improves UX (well-confirmed Facts read as bolder at a glance —
+  passive complement to the on-demand tooltip/panel); protects graph behavior
+  (additive width fn; layout/forces unchanged; superseded stays thin). V=3 C=5 S=5.
+- **Files**: viewer/lib/graph-model.ts (factLinkWidth), viewer/components/Graph.tsx,
+  viewer/app/page.tsx (hint), test/graph-model.test.ts (+4 factLinkWidth cases).
+- **Verification**: viewer `npm run typecheck` ✓ · viewer `npm run build` ✓ · main
+  `npm run typecheck` ✓ · `npm run lint` ✓ · `npm test` ✓ (31 files / 141 tests;
+  +4 tests vs iter 12).
+- **Commit**: 0d1bec5
+- **Saturation**: none changed (UX produced V=3).

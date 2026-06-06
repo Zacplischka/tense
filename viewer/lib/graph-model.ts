@@ -120,3 +120,16 @@ export function factsForEntity(snapshot: Snapshot, entityId: string): EntityFact
   });
   return rows;
 }
+
+/**
+ * Edge width for the graph. Superseded Facts stay thin so they never visually
+ * dominate the Current ones (Current vs superseded stays the primary read).
+ * A Current Fact's width grows gently with how many Sources reinforce it, so a
+ * well-confirmed relationship reads as bolder at a glance — capped so a heavily
+ * cited edge can't blow out the layout. Pure, so it's unit-tested.
+ */
+export function factLinkWidth(current: boolean, reinforcedBy: number): number {
+  if (!current) return 0.8;
+  const extraSources = Math.min(Math.max(reinforcedBy - 1, 0), 4); // 0..4 beyond the first
+  return 1.4 + extraSources * 0.6; // 1.4 (1 source) … 3.8 (≥5 sources)
+}
