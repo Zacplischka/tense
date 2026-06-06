@@ -121,16 +121,27 @@ export function createMcpServer(deps: RememberDeps): McpServer {
           .boolean()
           .optional()
           .describe("Attach `citedBy` — which Sources assert each Fact (provenance audit), not just the count."),
+        include_source_text: z
+          .boolean()
+          .optional()
+          .describe("Include each Fact's full Source text (default true). False = token-lean (id/label only)."),
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    async ({ query, as_of, predicate, limit, min_reinforced, include_sources }) => {
+    async ({ query, as_of, predicate, limit, min_reinforced, include_sources, include_source_text }) => {
       const asOf = as_of ? new Date(as_of) : null;
       if (as_of && Number.isNaN(asOf!.getTime())) return errorResult(`invalid as_of date: ${as_of}`);
       const facts = await recall(
         { store: deps.store, provider: deps.provider },
         query,
-        { asOf, predicate, limit, minReinforced: min_reinforced, includeSources: include_sources },
+        {
+          asOf,
+          predicate,
+          limit,
+          minReinforced: min_reinforced,
+          includeSources: include_sources,
+          includeSourceText: include_source_text,
+        },
       );
       return jsonResult(facts);
     },

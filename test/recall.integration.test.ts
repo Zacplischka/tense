@@ -55,6 +55,16 @@ describe("recall (point-in-time)", () => {
     expect(fact?.invalidAt).toBeNull(); // Current Fact has an open valid interval
   });
 
+  it("include_source_text: false drops the full text but keeps the Source id/label", async () => {
+    const [full] = await recall({ store }, "Zach reports to");
+    expect(full?.source.text).toBeTruthy(); // default: full text present
+
+    const [lean] = await recall({ store }, "Zach reports to", { includeSourceText: false });
+    expect(lean?.source.text).toBeUndefined(); // omitted for a token-lean result
+    expect(lean?.source.id).toBe(full?.source.id); // citation still identifiable
+    expect(lean?.source.label).toBe(full?.source.label);
+  });
+
   it("surfaces learnedAt (transaction time), distinct from valid time and consistent with `changes`", async () => {
     const [bob] = await recall({ store }, "Zach reports to");
     expect(bob?.learnedAt).toBeInstanceOf(Date);

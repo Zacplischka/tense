@@ -29,6 +29,12 @@ export interface RecallOptions {
    * WHICH Sources back each Fact, not just how many (`reinforcedBy`).
    */
   includeSources?: boolean;
+  /**
+   * Include the full `source.text` on each result (default true). Set false for a
+   * token-lean recall over long Sources — `source` then carries only `id`/`label`,
+   * and full text can be re-fetched via the `sources` tool.
+   */
+  includeSourceText?: boolean;
 }
 
 /** Canonicalize a Predicate filter to the stored slug form, or null if blank. */
@@ -95,6 +101,11 @@ export async function recall(
   if (opts.includeSources && result.length > 0) {
     const byFact = await store.citingSourcesFor(result.map((f) => f.id));
     for (const f of result) f.citedBy = byFact.get(f.id) ?? [];
+  }
+
+  // Token-lean mode: drop the full Source text (keep id/label) on request.
+  if (opts.includeSourceText === false) {
+    for (const f of result) f.source = { id: f.source.id, label: f.source.label };
   }
 
   return result;

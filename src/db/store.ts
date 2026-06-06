@@ -94,8 +94,13 @@ export interface RecalledFact {
    * week" apart from a long-held belief.
    */
   learnedAt: Date;
-  /** The origin Source (first to assert this Fact). */
-  source: { id: string; label: string | null; text: string };
+  /**
+   * The origin Source (first to assert this Fact). `text` is the full ingested
+   * chunk; it is omitted when recall is called with `include_source_text: false`
+   * (a token-lean mode for long Sources — re-fetch full text via the `sources`
+   * tool or a default recall). Always present on `history`/`changes`.
+   */
+  source: { id: string; label: string | null; text?: string };
   /**
    * How many distinct Sources assert this Fact (origin + Reaffirmations, ADR
    * 0005) — a provenance-strength signal so a reader can weigh a multiply-

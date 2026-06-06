@@ -1477,3 +1477,28 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Commit**: 47d79c2 (ledger only)
 - **Saturation**: ALL flags cleared (fresh survey, iter 60) — all already 0. Mature
   codebase; the productive dims (functionality/UX) were diversify-blocked this turn.
+
+### Iteration 61 · new-capability (functionality) · mode=exploit
+- **Change**: `recall` gains an opt-in `include_source_text` (default true). False →
+  results omit the full `source.text` (keeping `source.id`/`label`), for a
+  token-lean recall over LONG Sources (the living-memory/session-ingest case) where
+  returning ~20 full documents is wasteful; full text re-fetchable via `sources`.
+- **Net-positive**: improves functionality (token efficiency for the primary user —
+  agents — on the real long-Source path). Protects default recall (text present
+  unless opted out), correctness; `history`/`changes` always keep text. V=3 C=4 S=4.
+- **Why functionality**: diversify blocks the last two dims (a11y 59, scout 60 has
+  none); functionality is steering-primary and open (last 57). Picked over a 2nd
+  consecutive scout because this is a genuine, clean opt-in win (not forced); the
+  as-of UX is already well-indicated (V2) and other backlog items are V2.
+- **Design / blast radius**: `RecalledFact.source.text` made OPTIONAL (honest — it's
+  genuinely absent in lean mode); mapRecalledRow unchanged (sets it); recall strips
+  it post-hoc when opted out. Minimal ripple — no viewer use of RecalledFact; one
+  recall test reads source.text (present by default). Closes iter-54 backlog
+  "source-text knob".
+- **Files**: src/db/store.ts (source.text optional + doc), src/retrieval/recall.ts
+  (includeSourceText option + strip), src/mcp/server.ts (include_source_text param),
+  test/recall.integration.test.ts (+1: lean drops text, keeps id/label), README.md.
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (40 files / 198 tests, +1). Viewer gate not run (no viewer change). → pass.
+- **Commit**: 4f06e10
+- **Saturation**: new-capability/functionality active (V=3) — no flag change.
