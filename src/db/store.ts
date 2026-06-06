@@ -221,22 +221,36 @@ export class TemporalGraphStore {
     }));
   }
 
+  /**
+   * Close (expire) the given Facts on an already-open transaction client — the
+   * shared mechanism behind BOTH supersession paths: cardinality
+   * ({@link supersedeAndInsert}) and contradiction ({@link expireFacts}). The
+   * `expired_at IS NULL` guard makes each close idempotent — re-closing an
+   * already-closed Fact simply returns nothing for it. Runs on the caller's
+   * client so it joins the caller's BEGIN/COMMIT; it does not manage the
+   * transaction itself.
+   */
+  private async closeFactsTx(client: pg.PoolClient, closes: FactClose[]): Promise<Fact[]> {
+    const closed: Fact[] = [];
+    for (const close of closes) {
+      const { rows } = await client.query(
+        `UPDATE facts SET invalid_at = $2, expired_at = $3
+         WHERE id = $1 AND expired_at IS NULL
+         RETURNING ${FACT_COLUMNS}`,
+        [close.factId, close.invalidAt, close.expiredAt],
+      );
+      if (rows[0]) closed.push(mapFact(rows[0]));
+    }
+    return closed;
+  }
+
   /** Atomically close (expire) a set of Facts — used by the contradiction path. */
   async expireFacts(closes: FactClose[]): Promise<Fact[]> {
     if (closes.length === 0) return [];
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
-      const closed: Fact[] = [];
-      for (const close of closes) {
-        const { rows } = await client.query(
-          `UPDATE facts SET invalid_at = $2, expired_at = $3
-           WHERE id = $1 AND expired_at IS NULL
-           RETURNING ${FACT_COLUMNS}`,
-          [close.factId, close.invalidAt, close.expiredAt],
-        );
-        if (rows[0]) closed.push(mapFact(rows[0]));
-      }
+      const closed = await this.closeFactsTx(client, closes);
       await client.query("COMMIT");
       return closed;
     } catch (err) {
@@ -271,16 +285,7 @@ export class TemporalGraphStore {
     try {
       await client.query("BEGIN");
 
-      const closed: Fact[] = [];
-      for (const close of closes) {
-        const { rows } = await client.query(
-          `UPDATE facts SET invalid_at = $2, expired_at = $3
-           WHERE id = $1 AND expired_at IS NULL
-           RETURNING ${FACT_COLUMNS}`,
-          [close.factId, close.invalidAt, close.expiredAt],
-        );
-        if (rows[0]) closed.push(mapFact(rows[0]));
-      }
+      const closed = await this.closeFactsTx(client, closes);
 
       const { rows } = await client.query(
         `INSERT INTO facts (subject_id, predicate, object_id, source_id, valid_at, invalid_at, expired_at)

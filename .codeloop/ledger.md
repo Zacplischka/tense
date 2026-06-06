@@ -49,10 +49,12 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   (iter 2): `test/store-helpers.test.ts`.
 - [DX/tooling] No ESLint/Prettier; a strict, isolated config would catch drift.
   (Higher blast radius — may flag many existing lines; needs a careful config.)
-- [docs] README has no worked example of tool JSON I/O.
-- [readability] `expireFacts` and `supersedeAndInsert` (store.ts) share an
-  identical in-transaction close-facts loop — extract a private helper. Touches
-  core but is covered by supersession + contradiction integration tests.
+- [docs] README has no worked example of tool JSON I/O. (Note: verifying it
+  means capturing real tool output, not hand-writing JSON — soft gate.)
+- ~~[readability] `expireFacts`/`supersedeAndInsert` shared close loop~~ — DONE
+  (iter 3): extracted `closeFactsTx`.
+- [DX/tooling] (still open) ESLint/Prettier — biggest remaining lever but highest
+  blast radius; budget a whole iteration and gate carefully.
 
 ## Log
 
@@ -88,3 +90,19 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   (25 files / 111 tests; +1 file, +12 tests vs iter 1).
 - **Commit**: c0761e4
 - **Saturation**: none changed (tests produced V=3, not low-value).
+
+### Iteration 3 · readability · mode=exploit
+- **Change**: Extract the duplicated in-transaction close-facts loop shared by
+  `expireFacts` (contradiction path) and `supersedeAndInsert` (cardinality path)
+  into one private `closeFactsTx(client, closes)` helper in store.ts. The
+  identical UPDATE-with-`expired_at IS NULL`-guard loop now lives in one place;
+  both callers run it on their own transaction client. Behavior-preserving.
+- **Net-positive**: improves readability/clarity (single source of truth for the
+  Fact-closing SQL — the kind of duplication that silently drifts); protects
+  correctness (no behavior change; both paths fully covered by
+  supersession.integration + contradiction.integration tests). V=3 C=4 S=4.
+- **Files**: src/db/store.ts.
+- **Verification**: `npm run typecheck` ✓ · `npm run build` ✓ · `npm test` ✓
+  (25 files / 111 tests — unchanged; behavior preserved). diff +25/-20.
+- **Commit**: 47b684a
+- **Saturation**: none changed (readability produced V=3, not low-value).
