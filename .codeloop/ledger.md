@@ -905,3 +905,25 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   → pass.
 - **Commit**: c22b956
 - **Saturation**: UX active (V=3) — no flag change.
+
+### Iteration 38 · docs · mode=exploit
+- **Change**: synced the README to the iter-36/37 supersession `reason` signal —
+  the canonical worked example's `factsSuperseded` entry was stale (no `reason`).
+  Added `"reason": "cardinality"` to the example, a one-line explanation of
+  cardinality-vs-contradiction (matching the existing `entitiesResolved` note
+  style), and tagged the `remember` tools-table row. Keeps the front-door docs
+  matching real tool output; serves the recent functionality (steering's docs
+  exception).
+- **Net-positive**: improves docs accuracy (front door advertises a real
+  agent-facing signal). Protects example correctness — kept it on the deterministic
+  cardinality demo path (did NOT fabricate a nondeterministic contradiction run);
+  the example is backed by a passing assertion in `test/pipeline.integration.test.ts`
+  (`reason` === "cardinality" for this exact Zach→Alice→Bob scenario). V=3 C=5 S=5.
+- **Why docs (not UX/functionality)**: diversify blocks the last two dims
+  (functionality 36, UX 37); docs directly serves them by keeping the example true.
+- **Files**: README.md (worked example + explanatory note + tools-table row).
+- **Verification**: docs-only (no build/test impact); accuracy cross-checked —
+  both README `factsSuperseded` occurrences consistent, example matches the
+  passing pipeline test. → pass.
+- **Commit**: 6dd6027
+- **Saturation**: docs active (V=3) — no flag change.

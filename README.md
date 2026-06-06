@@ -126,7 +126,7 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 
 | Tool | Signature | Returns |
 |---|---|---|
-| `remember` | `(text, source?)` | Facts created / superseded / reaffirmed after extraction + supersession, plus how each name resolved (`entitiesResolved`: new / exact / fuzzy) |
+| `remember` | `(text, source?)` | Facts created / superseded / reaffirmed after extraction + supersession (each superseded Fact tagged `reason`: `cardinality` / `contradiction`), plus how each name resolved (`entitiesResolved`: new / exact / fuzzy) |
 | `preview` | `(text)` | Dry-run of `remember` — what it *would* create / supersede / reaffirm (and how names resolve), writing nothing |
 | `recall` | `(query, as_of?, predicate?, limit?, min_reinforced?)` | Ranked Facts — Current by default, or valid-at-`as_of`; optionally scoped to a Predicate, capped, or filtered to Facts confirmed by ≥`min_reinforced` Sources — each with Source, interval, and `reinforcedBy` |
 | `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
@@ -160,10 +160,15 @@ merge is visible rather than silent.
 ```json
 { "sourceId": "7deb…", "factsReaffirmed": [],
   "factsCreated": [{ "id": "3d7b…", "subject": "Zach", "predicate": "reports-to", "object": "Bob" }],
-  "factsSuperseded": [{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice" }],
+  "factsSuperseded": [{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice", "reason": "cardinality" }],
   "entitiesResolved": [{ "input": "Zach", "resolvedTo": "Zach", "reason": "exact" },
                        { "input": "Bob", "resolvedTo": "Bob", "reason": "new" }] }
 ```
+
+Each superseded Fact carries a `reason` for **why** it closed — `cardinality`
+(a single-valued Predicate got a new object, as here) or `contradiction` (an
+LLM-judged cross-Predicate conflict, e.g. "works-at" retired by "left"), which
+closes a Fact under a *different* predicate than the one just stated.
 
 **3. `recall` now** — `query: "Zach reports to"` returns only the Current Fact, with its Source and open validity interval:
 
