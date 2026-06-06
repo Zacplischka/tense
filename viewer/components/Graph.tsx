@@ -122,6 +122,18 @@ export default function Graph({ data, width, height, highlightedIds, selectedId,
     fgRef.current?.refresh?.();
   }, [highlightedIds, selectedId]);
 
+  // Bring the selected Entity into view: selecting from the index/filter or walking
+  // the detail panel (which can target an off-screen node) should pan the camera to
+  // it — the selection ring is useless if you can't see it. Keyed on selectedId
+  // only, so live polling and glow never yank the camera.
+  useEffect(() => {
+    if (!selectedId) return;
+    const node = data.nodes.find((n) => n.id === selectedId);
+    if (node && node.x != null && node.y != null) {
+      fgRef.current?.centerAt?.(node.x, node.y, 600);
+    }
+  }, [selectedId]);
+
   const dimmed = (id: string): boolean => {
     const hov = hoverIdRef.current;
     if (!hov) return false;

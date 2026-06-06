@@ -1269,3 +1269,25 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   claims verified against the code, tree clean. → pass.
 - **Commit**: edf4d56
 - **Saturation**: docs active (V=3) — no flag change.
+
+### Iteration 53 · UX (viewer) · mode=exploit
+- **Change**: the graph now pans to the selected Entity's node on selection
+  (`centerAt`, 600ms). Selecting from the (filterable) Entity index or walking the
+  detail panel's counterpart links (iter 49) could ring an OFF-SCREEN node — the
+  ring was useless if you couldn't see it. Now selection brings the node into view,
+  turning index/panel selection into real graph navigation. Keyed on `selectedId`
+  only, so live polling/glow never yanks the camera.
+- **Net-positive**: improves UX (selection = navigation; completes the index/panel/
+  canvas loop from iters 11/27/46/49). Protects live rendering (no re-center on data
+  ticks), node-drag, and the existing repaint/force effects. V=3 C=4 S=4.
+- **Why UX (non-timestamp, non-Graph-risky)**: diversify blocks the last two dims
+  (docs 52, functionality 51); UX is steering-primary and open (last 49). Surveyed
+  the Graph component (mature) — centering the camera on selection was the clear,
+  well-isolated remaining gap, distinct from the timestamp arc (done iter 45).
+- **Files**: viewer/components/Graph.tsx (one effect: centerAt on selectedId).
+- **Verification**: `npm run check:viewer` → EXIT=0 (tsc --noEmit ✓, next build ✓).
+  Viewer-only (Graph.tsx not imported by the main suite); canvas/library behavior
+  has no component-test harness, so verified via typecheck + build per the
+  established Graph pattern (iter 13). → pass.
+- **Commit**: d9ba64c
+- **Saturation**: UX active (V=3) — no flag change.
