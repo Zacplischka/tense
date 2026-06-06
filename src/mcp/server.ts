@@ -87,5 +87,26 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
   );
 
+  server.registerTool(
+    "stats",
+    {
+      title: "Stats",
+      description:
+        "Return a read-only snapshot of the graph: Entity and Source counts, Fact " +
+        "totals split Current vs superseded, and a per-Predicate breakdown. Useful " +
+        'for an agent to answer "what is in my memory?" without recalling Facts.',
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const stats = await deps.store.graphStats();
+        return { content: [{ type: "text", text: JSON.stringify(stats, null, 2) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text", text: `stats failed: ${message}` }], isError: true };
+      }
+    },
+  );
+
   return server;
 }

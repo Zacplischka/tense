@@ -30,6 +30,19 @@ export interface FactClose {
   expiredAt: Date;
 }
 
+/**
+ * A high-level snapshot of the graph for introspection (the `stats` tool): how
+ * many Entities/Sources exist, how many Facts are Current vs superseded, and a
+ * per-Predicate breakdown. Read-only — never touches the supersession path.
+ */
+export interface GraphStats {
+  entities: number;
+  sources: number;
+  facts: { total: number; current: number; superseded: number };
+  /** Per-Predicate counts, ordered by total descending then predicate ascending. */
+  predicates: Array<{ predicate: string; current: number; total: number }>;
+}
+
 /** A Fact resolved for reading: entity names + Source text inlined. */
 export interface RecalledFact {
   id: string;
@@ -471,5 +484,45 @@ export class TemporalGraphStore {
     if (ids.length === 0) return new Map();
     const { rows } = await this.pool.query(`${RECALL_SELECT} WHERE f.id = ANY($1::uuid[])`, [ids]);
     return new Map(rows.map((row) => [row.id as string, mapRecalledRow(row)]));
+  }
+
+  /**
+   * A read-only snapshot of the whole graph for the `stats` tool: Entity/Source
+   * counts, Fact totals split Current vs superseded (transaction time open vs
+   * closed), and a per-Predicate breakdown. Current is `expired_at IS NULL`, the
+   * same definition every reader uses; superseded is the complement, so the two
+   * always sum to total. Touches no write path.
+   */
+  async graphStats(): Promise<GraphStats> {
+    const [{ rows: ent }, { rows: src }, { rows: factRows }, { rows: predRows }] = await Promise.all([
+      this.pool.query("SELECT count(*)::int AS n FROM entities"),
+      this.pool.query("SELECT count(*)::int AS n FROM sources"),
+      this.pool.query(
+        `SELECT count(*)::int AS total,
+                count(*) FILTER (WHERE expired_at IS NULL)::int AS current
+         FROM facts`,
+      ),
+      this.pool.query(
+        `SELECT predicate,
+                count(*)::int AS total,
+                count(*) FILTER (WHERE expired_at IS NULL)::int AS current
+         FROM facts
+         GROUP BY predicate
+         ORDER BY total DESC, predicate ASC`,
+      ),
+    ]);
+
+    const total = (factRows[0]?.total as number) ?? 0;
+    const current = (factRows[0]?.current as number) ?? 0;
+    return {
+      entities: (ent[0]?.n as number) ?? 0,
+      sources: (src[0]?.n as number) ?? 0,
+      facts: { total, current, superseded: total - current },
+      predicates: predRows.map((r) => ({
+        predicate: r.predicate as string,
+        current: r.current as number,
+        total: r.total as number,
+      })),
+    };
   }
 }

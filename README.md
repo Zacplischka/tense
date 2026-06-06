@@ -129,6 +129,7 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 | `remember` | `(text, source?)` | Facts created and superseded after extraction + supersession |
 | `recall` | `(query, as_of?)` | Ranked Facts — Current by default, or valid-at-`as_of` — each with Source + interval |
 | `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
+| `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown |
 
 ### The live viewer
 
