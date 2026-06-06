@@ -6,6 +6,7 @@ import type { PredicateRegistry } from "./supersession/registry.js";
 import type { ProviderClient } from "./provider/types.js";
 import { resolveSupersession } from "./supersession/resolver.js";
 import { applySupersessionPlan, toCandidateFact } from "./supersession/apply.js";
+import { resolveContradictions } from "./contradiction/contradiction.js";
 
 /**
  * The converged ingest path (slice 07): remember = extract → resolve Entities →
@@ -21,6 +22,11 @@ export interface RememberDeps {
   provider?: ProviderClient;
   /** Injectable clock so transaction time is deterministic in tests. */
   now?: () => Date;
+  /**
+   * Enable the LLM-judged contradiction path (cross-Predicate, off the critical
+   * demo path). Requires `provider`. Default off so the demo stays deterministic.
+   */
+  enableContradiction?: boolean;
 }
 
 export interface FactSummary {
@@ -94,6 +100,33 @@ export async function remember(
         if (embedding) await store.setFactEmbedding(inserted.id, embedding);
       } catch {
         // embedding is best-effort; recall still works on keyword + temporal filter
+      }
+    }
+
+    // LLM-judged contradiction (off the critical demo path). Catches cross-
+    // Predicate conflicts cardinality can't (works-at vs left). Reuses slice 03's
+    // direction rule. Best-effort: a judge failure never breaks ingestion.
+    if (deps.enableContradiction && provider && inserted.expiredAt === null) {
+      const contradicted = await resolveContradictions(
+        { store, provider, now: clock, model: undefined },
+        {
+          id: inserted.id,
+          subjectId: subject.id,
+          subject: subject.name,
+          predicate: fact.predicate,
+          object: object.name,
+          validAt: fact.validAt,
+        },
+      );
+      for (const c of contradicted) {
+        if (c.id === inserted.id) continue; // the new Fact closed itself (out-of-order)
+        const closedObject = await store.getEntity(c.objectId);
+        summary.factsSuperseded.push({
+          id: c.id,
+          subject: subject.name,
+          predicate: c.predicate,
+          object: closedObject?.name ?? c.objectId,
+        });
       }
     }
   }

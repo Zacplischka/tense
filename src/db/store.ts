@@ -179,6 +179,53 @@ export class TemporalGraphStore {
     return mapFact(rows[0]);
   }
 
+  /** All Current Facts for a subject (any Predicate) with object names — the
+   * contradiction path's candidate set. */
+  async currentFactsForSubject(
+    subjectId: string,
+  ): Promise<Array<{ id: string; predicate: string; object: string; validAt: Date | null; createdAt: Date }>> {
+    const { rows } = await this.pool.query(
+      `SELECT f.id, f.predicate, obj.name AS object, f.valid_at, f.created_at
+       FROM facts f JOIN entities obj ON obj.id = f.object_id
+       WHERE f.subject_id = $1 AND f.expired_at IS NULL
+       ORDER BY f.created_at ASC`,
+      [subjectId],
+    );
+    return rows.map((r) => ({
+      id: r.id as string,
+      predicate: r.predicate as string,
+      object: r.object as string,
+      validAt: (r.valid_at as Date | null) ?? null,
+      createdAt: r.created_at as Date,
+    }));
+  }
+
+  /** Atomically close (expire) a set of Facts — used by the contradiction path. */
+  async expireFacts(closes: FactClose[]): Promise<Fact[]> {
+    if (closes.length === 0) return [];
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const closed: Fact[] = [];
+      for (const close of closes) {
+        const { rows } = await client.query(
+          `UPDATE facts SET invalid_at = $2, expired_at = $3
+           WHERE id = $1 AND expired_at IS NULL
+           RETURNING ${FACT_COLUMNS}`,
+          [close.factId, close.invalidAt, close.expiredAt],
+        );
+        if (rows[0]) closed.push(mapFact(rows[0]));
+      }
+      await client.query("COMMIT");
+      return closed;
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
   /** Current Facts for a (subject, predicate) — the supersession candidates. */
   async currentFactsFor(subjectId: string, predicate: string): Promise<Fact[]> {
     const { rows } = await this.pool.query(

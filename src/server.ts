@@ -25,6 +25,7 @@ async function main(): Promise<void> {
     resolver: new EntityResolver(pool),
     registry: defaultPredicateRegistry(),
     provider,
+    enableContradiction: true, // general cross-Predicate path (cardinality is always on)
   };
 
   const server = createMcpServer(deps);

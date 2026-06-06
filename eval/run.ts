@@ -34,6 +34,7 @@ async function main(): Promise<void> {
     resolver: new EntityResolver(pool),
     registry: defaultPredicateRegistry(),
     provider,
+    enableContradiction: true, // exercise the general path (cross-predicate)
   };
 
   console.log("Running Tense eval over the gold set (real extraction + embeddings)…\n");

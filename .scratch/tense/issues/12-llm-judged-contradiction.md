@@ -22,3 +22,24 @@ The general contradiction path that cardinality can't express (cross-Predicate "
 
 - `09-point-in-time-recall`
 - `11-full-gold-eval-set`
+
+## Comments
+
+✅ **Completed 2026-06-06.** Metric-gated; verified live.
+
+- `src/contradiction/contradiction.ts` — candidate retrieval (subject's Current
+  Facts) → ONE LLM nomination call (`contradicted_ids`) → supersession.
+- **Reuses slice 03's direction rule:** the resolver now exports `existingIsNewer`
+  + `closeIntervals`, used by BOTH cardinality and contradiction — direction is
+  decided in exactly one place (older `valid_at` closes; null/tie → transaction
+  time). No second implementation.
+- Wired into `remember` behind `enableContradiction` (on for the server + eval,
+  **off the critical demo path** so the recorded demo stays deterministic).
+  Best-effort: a judge/parse failure resolves to "no contradiction" and never
+  breaks ingestion.
+- Deterministic test (fake judge + real PG): `left` retires `works-at` (older
+  closes, `invalid_at` = left's valid_at); coexisting `knows` Facts untouched.
+
+**Metric gate (live eval, contradiction on):** supersession P=**100%** R=**100%**
+false-supersession=**0%** — the cross-Predicate works-at→left case now resolves
+(was the one miss at R=87.5%).

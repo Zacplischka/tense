@@ -102,24 +102,34 @@ export function resolveSupersession(input: ResolverInput): SupersessionPlan {
   // The incoming Fact is the live truth -> close every existing Current Fact.
   const toClose: FactClosePlan[] = candidateFacts.map((c) => ({
     factId: c.id,
-    // Valid-time end = the incoming valid_at when known; else the transaction
-    // time as an explicit, documented fallback (never silently reused as if it
-    // were valid time).
-    invalidAt: newFact.validAt ?? now,
-    expiredAt: now,
+    ...closeIntervals(newFact.validAt, now),
   }));
 
   return { direction: "new-supersedes-existing", toClose, newFact: bornCurrent };
 }
 
 /**
- * Is the existing Fact newer (in valid time) than the incoming one? True only
- * when both valid times are known and the existing one is strictly later. A null
- * valid_at on either side, or a tie, defers to the transaction-time fallback —
- * under which the incoming Fact (ingested now) is the live truth — so this
- * returns false.
+ * The valid-time direction rule (ADR 0002), shared by BOTH supersession paths —
+ * cardinality (above) and LLM-judged contradiction (slice 12) — so direction is
+ * decided in exactly one place. Is the existing Fact newer (in valid time) than
+ * the incoming one? True only when both valid times are known and the existing
+ * one is strictly later. A null valid_at on either side, or a tie, defers to the
+ * transaction-time fallback (the incoming Fact, ingested now, is the live truth).
  */
-function existingIsNewer(existing: CandidateFact, newValidAt: Date | null): boolean {
+export function existingIsNewer(existing: CandidateFact, newValidAt: Date | null): boolean {
   if (existing.validAt === null || newValidAt === null) return false;
   return existing.validAt.getTime() > newValidAt.getTime();
+}
+
+/**
+ * The close intervals when a Fact is retired by a newer one: valid-time end is
+ * the newer Fact's valid_at when known, else the transaction time as an explicit,
+ * documented fallback (never silently reused as if it were valid time);
+ * transaction-time end is now.
+ */
+export function closeIntervals(
+  newerValidAt: Date | null,
+  now: Date,
+): { invalidAt: Date | null; expiredAt: Date } {
+  return { invalidAt: newerValidAt ?? now, expiredAt: now };
 }
