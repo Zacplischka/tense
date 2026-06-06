@@ -43,6 +43,18 @@ export interface GraphStats {
   predicates: Array<{ predicate: string; current: number; total: number }>;
 }
 
+/**
+ * One Entity in the `entities` listing: its name plus how many Current Facts
+ * touch it (as subject OR object) — a "how connected is this node" degree that
+ * lets an agent browse the graph by Entity rather than by relevance query.
+ */
+export interface EntitySummary {
+  id: string;
+  name: string;
+  /** Count of Current Facts where this Entity is the subject or the object. */
+  currentFacts: number;
+}
+
 /** A Fact resolved for reading: entity names + Source text inlined. */
 export interface RecalledFact {
   id: string;
@@ -537,5 +549,34 @@ export class TemporalGraphStore {
         total: r.total as number,
       })),
     };
+  }
+
+  /**
+   * List Entities for the `entities` tool — each with the number of Current Facts
+   * touching it (subject or object), most-connected first. An optional `query`
+   * filters by normalized-name substring (case-insensitive) so an agent can find
+   * an Entity without already knowing its exact name. Read-only.
+   */
+  async listEntities(opts: { query?: string; limit?: number } = {}): Promise<EntitySummary[]> {
+    const lim = clampLimit(opts.limit ?? 50);
+    const q = opts.query?.trim() ? normalizeName(opts.query) : null;
+    const where = q === null ? "" : "WHERE e.normalized_name ILIKE '%' || $1 || '%'";
+    const params = q === null ? [] : [q];
+    const { rows } = await this.pool.query(
+      `SELECT e.id, e.name,
+              count(f.id) FILTER (WHERE f.expired_at IS NULL)::int AS current_facts
+       FROM entities e
+       LEFT JOIN facts f ON f.subject_id = e.id OR f.object_id = e.id
+       ${where}
+       GROUP BY e.id, e.name
+       ORDER BY current_facts DESC, e.name ASC
+       LIMIT ${lim}`,
+      params,
+    );
+    return rows.map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      currentFacts: r.current_facts as number,
+    }));
   }
 }

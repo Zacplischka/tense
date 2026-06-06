@@ -60,9 +60,8 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   `no-empty:[allowEmptyCatch]` (or per-line disables), and it adds eslint +
   typescript-eslint devDeps + a lockfile change. Budget a whole iteration; aim
   for a flat config that passes green on the current tree with zero source edits.
-- [new-capability] An `entities` MCP tool — list/search Entities (and their
-  Current Fact counts) to browse the graph by node, complementing `stats`.
-  Additive, read-only, isolated.
+- ~~[new-capability] An `entities` MCP tool~~ — DONE (iter 6): list/search
+  Entities with Current-Fact degree, `TemporalGraphStore.listEntities()`.
 - [perf] Demo-scale only today: entity-resolver trigram fuzzy match and the
   recall rankers do seq scans (code says "fine at demo scale"). A real perf turn
   = add pg_trgm GIN + ivfflat indexes via a migration. Deferred until scale matters.
@@ -157,3 +156,20 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   (26 files / 114 tests; +1 file, +3 tests vs iter 4).
 - **Commit**: 43ad5a6
 - **Saturation**: cleared by fresh survey (all 0); tests produced V=3.
+
+### Iteration 6 · new-capability · mode=exploit
+- **Change**: Add an `entities` MCP tool + `TemporalGraphStore.listEntities()` —
+  list/search Entities, each with its Current-Fact degree (count of Current Facts
+  where it is subject OR object), most-connected first; optional case-insensitive
+  name-substring filter. Fills the one navigation gap: `recall` returns Facts by
+  relevance, `history` needs a known subject, `stats` only aggregates — nothing
+  enumerated the Entity vocabulary. Read-only; new tool honors the isError pattern.
+- **Net-positive**: improves capability/observability (browse the graph by node);
+  protects correctness/existing tools (read-only LEFT JOIN aggregate; no change to
+  remember/recall/history/supersession paths). V=3 C=5 S=5.
+- **Files**: src/db/store.ts, src/mcp/server.ts, test/entities.integration.test.ts,
+  test/mcp-adapter.integration.test.ts (tool-list assertion), README.md.
+- **Verification**: `npm run typecheck` ✓ · `npm run build` ✓ · `npm test` ✓
+  (27 files / 118 tests; +1 file, +4 tests vs iter 5).
+- **Commit**: ad6a4d5
+- **Saturation**: none changed (new-capability produced V=3, not low-value).

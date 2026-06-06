@@ -44,10 +44,16 @@ afterAll(async () => {
 });
 
 describe("MCP adapter (real client <-> server, provider replayed)", () => {
-  it("lists remember, recall, history, and stats", async () => {
+  it("lists remember, recall, history, stats, and entities", async () => {
     const client = await connect(depsWith(new StubExtractor()));
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["history", "recall", "remember", "stats"]);
+    expect(tools.map((t) => t.name).sort()).toEqual([
+      "entities",
+      "history",
+      "recall",
+      "remember",
+      "stats",
+    ]);
   });
 
   it("org change over MCP: remember twice, recall returns the Current Fact", async () => {

@@ -108,5 +108,30 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
   );
 
+  server.registerTool(
+    "entities",
+    {
+      title: "Entities",
+      description:
+        "List the Entities in the graph, each with how many Current Facts touch it " +
+        "(subject or object), most-connected first. Optionally filter by a name " +
+        "substring. Browse the graph by Entity — complements `recall` (by relevance) " +
+        "and `history` (by known subject).",
+      inputSchema: {
+        query: z.string().optional().describe("Optional name substring to filter Entities (case-insensitive)."),
+        limit: z.number().int().positive().optional().describe("Max Entities to return (default 50)."),
+      },
+    },
+    async ({ query, limit }) => {
+      try {
+        const entities = await deps.store.listEntities({ query, limit });
+        return { content: [{ type: "text", text: JSON.stringify(entities, null, 2) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text", text: `entities failed: ${message}` }], isError: true };
+      }
+    },
+  );
+
   return server;
 }
