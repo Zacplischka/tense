@@ -169,11 +169,16 @@ export default function Page() {
       const c = data.factsCreated?.length ?? 0;
       const s = data.factsSuperseded?.length ?? 0;
       const r = data.factsReaffirmed?.length ?? 0;
+      // Surface fuzzy entity merges so a wrong merge is visible, not silent.
+      const merges = (data.entitiesResolved ?? [])
+        .filter((e: { reason?: string }) => e.reason === "fuzzy")
+        .map((e: { input: string; resolvedTo: string }) => `${e.input}→${e.resolvedTo}`);
+      const mergeNote = merges.length ? ` · merged ${merges.join(", ")}` : "";
       setStatus("done");
       setMessage(
         c + s + r === 0
           ? "No Facts found in that text."
-          : `✓ ${c} created · ${s} superseded · ${r} reaffirmed`,
+          : `✓ ${c} created · ${s} superseded · ${r} reaffirmed${mergeNote}`,
       );
       if (c > 0) setText("");
     } catch (e) {

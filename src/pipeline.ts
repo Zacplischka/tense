@@ -36,6 +36,23 @@ export interface FactSummary {
   object: string;
 }
 
+/**
+ * How one extracted name resolved during ingest (PRD US-10). The resolver already
+ * decides this; surfacing it lets a caller SEE when a variant was fuzzy-merged into
+ * an existing Entity (e.g. "Zachery" → "Zachary") and catch a wrong merge, instead
+ * of the decision happening silently.
+ */
+export interface EntityResolution {
+  /** The name as it appeared in the Source text. */
+  input: string;
+  /** The Entity it resolved to (existing match, or newly created). */
+  resolvedTo: string;
+  /** exact / fuzzy match against an existing Entity, or a new Entity created. */
+  reason: "exact" | "fuzzy" | "new";
+  /** Trigram similarity to the matched Entity (fuzzy matches only). */
+  similarity?: number;
+}
+
 export interface RememberSummary {
   sourceId: string;
   factsCreated: FactSummary[];
@@ -46,6 +63,11 @@ export interface RememberSummary {
    * "we learned this again" from "this changed" (factsSuperseded).
    */
   factsReaffirmed: FactSummary[];
+  /**
+   * One entry per distinct name mentioned in the Source, recording how entity
+   * resolution placed it (exact/fuzzy/new). Surfaces fuzzy merges for review.
+   */
+  entitiesResolved: EntityResolution[];
 }
 
 export async function remember(
@@ -67,11 +89,43 @@ export async function remember(
     factsCreated: [],
     factsSuperseded: [],
     factsReaffirmed: [],
+    entitiesResolved: [],
+  };
+
+  // Resolve each name to an Entity, recording how it resolved (first occurrence of
+  // a given input name wins — the decision made against the pre-existing graph).
+  const resolutions = new Map<string, EntityResolution>();
+  const resolveAndRecord = async (name: string): Promise<Entity> => {
+    const result = await resolver.resolve(name);
+    let entity: Entity;
+    let reason: EntityResolution["reason"];
+    if (result.entityId) {
+      const matched = await store.getEntity(result.entityId);
+      if (matched) {
+        entity = matched;
+        reason = result.reason === "exact" ? "exact" : "fuzzy";
+      } else {
+        entity = await store.upsertEntity(name); // matched row vanished — treat as new
+        reason = "new";
+      }
+    } else {
+      entity = await store.upsertEntity(name);
+      reason = "new";
+    }
+    if (!resolutions.has(name)) {
+      resolutions.set(name, {
+        input: name,
+        resolvedTo: entity.name,
+        reason,
+        ...(reason === "fuzzy" && result.matched ? { similarity: result.matched.similarity } : {}),
+      });
+    }
+    return entity;
   };
 
   for (const fact of extracted.facts) {
-    const subject = await resolveOrCreate(resolver, store, fact.subject);
-    const object = await resolveOrCreate(resolver, store, fact.object);
+    const subject = await resolveAndRecord(fact.subject);
+    const object = await resolveAndRecord(fact.object);
 
     const currentFacts = await store.currentFactsFor(subject.id, fact.predicate);
 
@@ -163,19 +217,6 @@ export async function remember(
     }
   }
 
+  summary.entitiesResolved = [...resolutions.values()];
   return summary;
-}
-
-/** Resolve a name to an existing Entity (exact/fuzzy) or create a new one. */
-async function resolveOrCreate(
-  resolver: EntityResolver,
-  store: TemporalGraphStore,
-  name: string,
-): Promise<Entity> {
-  const result = await resolver.resolve(name);
-  if (result.entityId) {
-    const existing = await store.getEntity(result.entityId);
-    if (existing) return existing;
-  }
-  return store.upsertEntity(name);
 }

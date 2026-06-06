@@ -98,6 +98,9 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - ~~[functionality] `sources` MCP tool~~ — DONE (iter 14): enumerate ingested
   Sources (label, preview, ingest time, Facts-cited count); completes the
   introspection trio stats/entities/sources. `TemporalGraphStore.listSources()`.
+- ~~[functionality] surface entity-resolution decisions~~ — DONE (iter 17):
+  `remember` now returns `entitiesResolved` (new/exact/fuzzy + similarity); fuzzy
+  merges shown in the viewer status. Surfaces a hidden, consequential signal.
 - [functionality] (smaller, remaining) `reinforcedBy`-sorted recall / a `reinforcedBy`
   tiebreak in RRF — but ranking changes touch the eval headline; treat with care.
 
@@ -411,3 +414,21 @@ scrubber. After this, remaining items really are low-value; SCOUT is likely next
   additive ARIA, verified by build + review.
 - **Commit**: e080525
 - **Saturation**: none changed (accessibility produced V=3).
+
+### Iteration 17 · new-capability (functionality) · mode=exploit (user-steered)
+- **Change**: Surface entity-resolution decisions, a signal the resolver already
+  computes but `remember` threw away. `RememberSummary` gains `entitiesResolved`:
+  one entry per distinct input name with `{input, resolvedTo, reason: new|exact|
+  fuzzy, similarity?}`. Refactored the pipeline's resolve step to record the
+  decision (resolution LOGIC unchanged — same resolve→getEntity→upsert). Flows to
+  agents via the MCP `remember` tool automatically; the viewer status now shows
+  `· merged Zachery→Zachary` for fuzzy merges. Makes silent mis-merges visible.
+- **Net-positive**: improves functionality + trust/debuggability (a wrong fuzzy
+  merge corrupts the graph silently — now it's reported); protects the ingest path
+  (behavior identical; additive summary field; full suite + eval green). V=4 C=4 S=4.
+- **Files**: src/pipeline.ts, viewer/app/page.tsx, README.md (worked example +
+  tools table), test/entity-resolution-summary.integration.test.ts (new).
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (34 files / 155 tests; +1/+4) · viewer typecheck ✓ · viewer build ✓.
+- **Commit**: 011d882
+- **Saturation**: none changed (functionality produced V=4).

@@ -126,7 +126,7 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 
 | Tool | Signature | Returns |
 |---|---|---|
-| `remember` | `(text, source?)` | Facts created and superseded after extraction + supersession |
+| `remember` | `(text, source?)` | Facts created / superseded / reaffirmed after extraction + supersession, plus how each name resolved (`entitiesResolved`: new / exact / fuzzy) |
 | `recall` | `(query, as_of?, predicate?, limit?, min_reinforced?)` | Ranked Facts — Current by default, or valid-at-`as_of`; optionally scoped to a Predicate, capped, or filtered to Facts confirmed by ≥`min_reinforced` Sources — each with Source, interval, and `reinforcedBy` |
 | `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
 | `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown |
@@ -143,8 +143,14 @@ every other value is exactly what the tools return.)
 ```json
 { "sourceId": "0d67…", "factsReaffirmed": [],
   "factsCreated": [{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice" }],
-  "factsSuperseded": [] }
+  "factsSuperseded": [],
+  "entitiesResolved": [{ "input": "Zach", "resolvedTo": "Zach", "reason": "new" },
+                       { "input": "Alice", "resolvedTo": "Alice", "reason": "new" }] }
 ```
+
+`entitiesResolved` shows how each name was placed — `new`, `exact`, or `fuzzy`
+(a variant merged into an existing Entity, with its similarity) — so a wrong
+merge is visible rather than silent.
 
 **2. `remember` the change** — `text: "[2024-06-01] Zach reports to Bob."`, `source: "org-2024q2"`.
 `reports-to` is single-valued, so the Alice Fact is **superseded** (closed, not deleted):
@@ -152,7 +158,9 @@ every other value is exactly what the tools return.)
 ```json
 { "sourceId": "7deb…", "factsReaffirmed": [],
   "factsCreated": [{ "id": "3d7b…", "subject": "Zach", "predicate": "reports-to", "object": "Bob" }],
-  "factsSuperseded": [{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice" }] }
+  "factsSuperseded": [{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice" }],
+  "entitiesResolved": [{ "input": "Zach", "resolvedTo": "Zach", "reason": "exact" },
+                       { "input": "Bob", "resolvedTo": "Bob", "reason": "new" }] }
 ```
 
 **3. `recall` now** — `query: "Zach reports to"` returns only the Current Fact, with its Source and open validity interval:
