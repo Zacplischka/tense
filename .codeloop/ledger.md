@@ -110,12 +110,33 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - [functionality] (smaller, remaining) `reinforcedBy`-sorted recall / a `reinforcedBy`
   tiebreak in RRF — but ranking changes touch the eval headline; treat with care.
 
-_Note (iter 14): the high-value functionality/UX backlog is largely exhausted.
-Remaining items are lower-value (viewer stats-header / error polish) or risky
-(reinforcedBy ranking vs eval). Expect upcoming turns to SCOUT rather than force._
-_Update (iter 15 fresh survey): found one more high-value item — the viewer had no
-way to show the product's headline point-in-time capability. Built the as-of
-scrubber. After this, remaining items really are low-value; SCOUT is likely next._
+_Status (iter 20 fresh survey + SCOUT): the codebase is mature — 7-tool MCP
+surface (remember/preview/recall/history/stats/entities/sources, all annotated),
+rich accessible viewer (tooltip/panel/link-width/as-of scrubber), 159 tests,
+lint-clean, eval headline guarded by a deterministic test. The functionality/UX
+wells are genuinely drawn down. No candidate cleared the net-positive bar without
+either a 4th-straight functionality turn, a risky resolver rewrite, or V≤2 polish
+— so iter 20 SCOUTed (no code change). Concrete future opportunities, in rough
+priority:_
+- [architecture] Refactor `remember` into `plan()` + `apply()` so `remember =
+  apply(plan())` and `preview = plan()` — removes preview/remember orchestration
+  duplication (today they share only the pure resolver) and makes intra-batch
+  preview accurate. Touches the demo-critical path; full suite is the guard. (V≥3
+  candidate for a non-functionality turn — best next exploit.)
+- [perf] Trigram GIN index on `entities.normalized_name` + an index-accelerated
+  resolver. CAUTION: the resolver's 0.4 threshold vs the `%` operator's
+  GUC-controlled threshold — do NOT couple correctness to `pg_trgm.similarity_
+  threshold`; set it per-query or keep `similarity() >=` as a recheck. Verify with
+  EXPLAIN under `enable_seqscan = off`. Index-only (no resolver change) helps just
+  the `entities` ILIKE search (V≈2).
+- [perf] ivfflat index on `facts.embedding` for `rankBySemantic` — approximate NN;
+  needs `lists` tuning + a recall-quality check vs exact. Scale-only.
+- [functionality] reinforcedBy-influenced recall ranking (RRF tiebreak). Now
+  lower-risk: the eval headline is guarded by eval-harness.integration.test.ts.
+  Still marginal (only affects ties) and debatable as a heuristic.
+- [UX/viewer] stats-backed header summary + a clearer "connection lost" banner
+  on poll failure (today only a faint header ⚠). Low value; bundle if wanted.
+- [DX] Prettier (formatting is consistent enough that ESLint suffices; low value).
 
 ## Log
 
@@ -478,3 +499,23 @@ scrubber. After this, remaining items really are low-value; SCOUT is likely next
   `npm test` ✓ (35 files / 159 tests; +1 file, +3 tests vs iter 18).
 - **Commit**: fda0a28
 - **Saturation**: none changed (functionality produced V=4).
+
+### Iteration 20 · — · mode=scout (fresh survey)
+- **Outcome**: No code change. Fresh whole-codebase survey (src, viewer, eval
+  harness/metrics/baseline/run, scripts, dspy) found nothing that clears the
+  net-positive bar (V≥3, C≥3, no regression) this turn. The functionality/UX
+  backlog is drawn down to V≤2 polish (viewer stats-header / error banner) or
+  eval-risky ranking; the explore-target perf index is either V≈2 (index-only) or
+  needs a resolver rewrite that risks the correctness-critical fuzzy threshold;
+  architecture is well-factored, no dead code, no correctness bug. Per the hard
+  rules, SCOUT > forcing a low-value/risky change.
+- **Confirmed during survey**: the README headline (Tense beats the fair baseline
+  on point-in-time) IS guarded by a deterministic test
+  (`eval-harness.integration.test.ts`) — not a doc-only claim.
+- **Backlog**: refreshed with 6 concrete, prioritized future opportunities (see
+  Backlog → Status iter 20); top exploit candidate is the `remember` plan()/apply()
+  refactor (architecture), which also unblocks accurate intra-batch preview.
+- **Files**: none (scout) — ledger only.
+- **Verification**: n/a (no code change); tree was green at start (lint ✓, 159 tests).
+- **Commit**: efe1955 (ledger only)
+- **Saturation**: fresh survey cleared all flags (already 0).
