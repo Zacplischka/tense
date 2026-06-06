@@ -6,3 +6,9 @@ dist/
 .DS_Store
 coverage/
 .claude/settings.local.json
+
+# viewer (Next.js) build artifacts
+viewer/node_modules/
+viewer/.next/
+viewer/next-env.d.ts
+viewer/*.tsbuildinfo

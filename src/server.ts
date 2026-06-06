@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import "./env.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createPool } from "./db/pool.js";
 import { TemporalGraphStore } from "./db/store.js";

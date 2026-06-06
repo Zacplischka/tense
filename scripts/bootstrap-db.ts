@@ -2,6 +2,7 @@
  * One-command DB bootstrap: ensure the database exists, then apply migrations.
  * Run via `pnpm db:bootstrap` (or `pnpm db:setup` to also start Postgres).
  */
+import "../src/env.js";
 import { loadConfig } from "../src/config.js";
 import { ensureDatabase, migrate } from "../src/db/migrate.js";
 
