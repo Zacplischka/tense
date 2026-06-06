@@ -189,6 +189,25 @@ export default function Page() {
 
   return (
     <main style={{ maxWidth: 920, margin: "0 auto", padding: "28px 20px" }}>
+      {/* Live tool: when polling fails, make staleness unmistakable so a frozen
+          graph isn't mistaken for the current state (role=alert → announced by AT).
+          Clears automatically when a poll succeeds (error → null). */}
+      {error && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: 12,
+            padding: "8px 12px",
+            borderRadius: 8,
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#b91c1c",
+            fontSize: 13,
+          }}
+        >
+          ⚠ Disconnected from the server — the graph below may be stale. Reconnecting…
+        </div>
+      )}
       <header style={{ marginBottom: 12 }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>
           Tense <span style={{ color: "#64748b", fontWeight: 400 }}>— watch the graph grow</span>

@@ -109,8 +109,10 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   bi-temporal capability made visual; accessibility pass (iter 16: textarea label,
   aria-live status, graph role=img+label, panel landmark); keyboard/AT entity index
   (iter 27 — focusable name-sorted chips below the graph open the detail panel, the
-  first keyboard path into the canvas). Remaining (lower value): a header summary
-  using `stats`; error-state polish (error only shows in header).
+  first keyboard path into the canvas); disconnection banner (iter 34 — a prominent
+  role=alert "Disconnected — graph may be stale" when polling fails, so a live tool
+  doesn't show frozen data as current). Remaining (low value): a header summary
+  using `stats`.
 - ~~[functionality] Expose `limit` + `predicate` on `recall`~~ — DONE (iter 10):
   threaded through recall() + the 3 store rankers + the MCP tool; predicate
   normalized to slug.
@@ -816,3 +818,20 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Commit**: f32cd12 (ledger only)
 - **Saturation**: none changed; 4th scout of the run (20, 29, 31, 33) — expected at
   steady state on a mature codebase.
+
+### Iteration 34 · UX (viewer) · mode=exploit
+- **Change**: Add a prominent disconnection banner to the viewer. When `/api/graph`
+  polling fails, the app kept rendering the last snapshot with only a faint header
+  `⚠` — easy to miss while watching the graph, so stale data could be mistaken for
+  live. Now a `role="alert"` banner ("⚠ Disconnected from the server — the graph
+  below may be stale. Reconnecting…") shows whenever `error` is set and clears
+  automatically when a poll succeeds.
+- **Net-positive**: improves UX (staleness/trust visibility — core to a live
+  monitoring tool; also AT-announced via role=alert); protects behavior (additive,
+  conditional on existing `error` state; no data/poll-path change). V=3 C=4 S=5.
+- **Files**: viewer/app/page.tsx.
+- **Verification**: viewer `npm run typecheck` ✓ · viewer `npm run build` ✓ · main
+  `npm run lint` ✓ · `npm test` ✓ (39 files / 174, unchanged). Banner behavior
+  verified by review (renders iff `error`; clears on successful poll).
+- **Commit**: 38c4b69
+- **Saturation**: none changed (UX produced V=3).
