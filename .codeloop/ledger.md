@@ -544,3 +544,24 @@ priority:_
   `npm test` ✓ (36 files / 163 tests; +1 file, +4 tests vs iter 19's 159).
 - **Commit**: 91141d3
 - **Saturation**: none changed (architecture produced V=3).
+
+### Iteration 22 · docs · mode=exploit
+- **Change**: Add `docs/adr/0006-introspection-and-preview-surface.md` — records the
+  decision behind the read-only surface added in iters 1–21 (stats/entities/sources
+  introspection, `preview` dry-run, tool annotations) and, critically, the
+  load-bearing invariants: `preview` predicts `remember` by sharing the pure
+  `decideFact`; `remember` stays INCREMENTAL so it is NOT refactored into an
+  up-front `plan/apply` (would regress intra-batch supersession — the iter-21
+  finding). Captures a non-obvious "do not do this" so a future agent doesn't
+  reintroduce the regression. `docs/adr/` is a maintained, agent-consumed decision
+  log per CLAUDE.md, so this is on-mission, not ceremony.
+- **Net-positive**: improves docs (decision log + agent-navigability; guards a
+  future plan/apply regression); protects all code axes (docs-only, no code
+  touched). V=3 C=5 S=5.
+- **Files**: docs/adr/0006-introspection-and-preview-surface.md (new).
+- **Verification**: docs-only — every claim verified against the code (preview
+  reuses decideFact; remember incremental; preview test asserts graph-unchanged +
+  predicts-remember; annotations; recall knobs). `npm run lint` ✓ (code unchanged);
+  full suite not run (markdown-only addition cannot affect it).
+- **Commit**: fa4131f
+- **Saturation**: none changed (docs produced V=3).
