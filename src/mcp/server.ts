@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { recall, remember, type RememberDeps } from "../pipeline.js";
+import { remember, type RememberDeps } from "../pipeline.js";
+import { recall } from "../retrieval/recall.js";
 
 /**
  * Build the Tense MCP server over the ingest dependencies. Slice 01 exposed
@@ -45,14 +46,23 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     {
       title: "Recall",
       description:
-        "Return Current Facts matching the query, each with its Source citation " +
-        "and validity interval.",
+        "Return ranked Facts matching the query — Current by default, or whatever " +
+        "was Current at `as_of`. Each Fact includes its Source citation and " +
+        "validity interval.",
       inputSchema: {
-        query: z.string().describe("What to recall. Empty returns all Current Facts."),
+        query: z.string().describe("What to recall. Empty returns the temporally-filtered set."),
+        as_of: z
+          .string()
+          .optional()
+          .describe("ISO date/time; return Facts that were Current (valid) at that instant."),
       },
     },
-    async ({ query }) => {
-      const facts = await recall(deps.store, query);
+    async ({ query, as_of }) => {
+      const asOf = as_of ? new Date(as_of) : null;
+      if (as_of && Number.isNaN(asOf!.getTime())) {
+        return { content: [{ type: "text", text: `invalid as_of date: ${as_of}` }], isError: true };
+      }
+      const facts = await recall({ store: deps.store, provider: deps.provider }, query, { asOf });
       return { content: [{ type: "text", text: JSON.stringify(facts, null, 2) }] };
     },
   );

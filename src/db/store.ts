@@ -87,6 +87,42 @@ export function formatVector(embedding: number[]): string {
   return `[${embedding.join(",")}]`;
 }
 
+/** Shared SELECT for reading Facts with entity names + Source inlined. */
+const RECALL_SELECT = `
+  SELECT f.id, f.predicate, f.valid_at, f.invalid_at, f.expired_at,
+         subj.name AS subject_name, obj.name AS object_name,
+         s.id AS source_id, s.label AS source_label, s.text AS source_text
+  FROM facts f
+  JOIN entities subj ON subj.id = f.subject_id
+  JOIN entities obj  ON obj.id  = f.object_id
+  JOIN sources  s    ON s.id    = f.source_id`;
+
+/** Searchable text for a Fact (predicate hyphens -> spaces so they tokenize). */
+const FACT_TSVECTOR =
+  "to_tsvector('english', subj.name || ' ' || replace(f.predicate, '-', ' ') || ' ' || obj.name)";
+
+function mapRecalledRow(row: Record<string, unknown>): RecalledFact {
+  return {
+    id: row.id as string,
+    subject: row.subject_name as string,
+    predicate: row.predicate as string,
+    object: row.object_name as string,
+    validAt: (row.valid_at as Date | null) ?? null,
+    invalidAt: (row.invalid_at as Date | null) ?? null,
+    current: row.expired_at === null,
+    source: {
+      id: row.source_id as string,
+      label: (row.source_label as string | null) ?? null,
+      text: row.source_text as string,
+    },
+  };
+}
+
+/** Clamp an externally-supplied LIMIT to a safe positive integer. */
+function clampLimit(limit: number): number {
+  return Math.min(Math.max(Math.floor(limit) || 1, 1), 200);
+}
+
 /**
  * Postgres persistence for the temporal graph. Owns the mechanics of storage and
  * the atomic Supersession boundary — but holds no supersession *policy* (which
@@ -242,41 +278,76 @@ export class TemporalGraphStore {
   }
 
   /**
-   * Slice-01 recall: Current Facts whose subject/object/predicate match the
-   * query (substring), each with its Source. Hybrid semantic+keyword retrieval
-   * with RRF and the as-of temporal filter is slice 09.
+   * Browse temporally-filtered Facts (no relevance ranking) — used for an empty
+   * query. `asOf` null returns Current Facts (`expired_at IS NULL`); a date
+   * returns Facts valid at that instant (`valid_at <= T AND (invalid_at IS NULL
+   * OR invalid_at > T)`), per ADR 0002's point-in-time formula.
    */
-  async recallCurrent(query: string): Promise<RecalledFact[]> {
+  async recallByTemporal(asOf: Date | null, limit = 50): Promise<RecalledFact[]> {
+    const lim = clampLimit(limit);
+    if (asOf === null) {
+      const { rows } = await this.pool.query(
+        `${RECALL_SELECT} WHERE f.expired_at IS NULL ORDER BY f.created_at DESC LIMIT ${lim}`,
+      );
+      return rows.map(mapRecalledRow);
+    }
     const { rows } = await this.pool.query(
-      `SELECT f.id, f.predicate, f.valid_at, f.invalid_at, f.expired_at,
-              subj.name AS subject_name, obj.name AS object_name,
-              s.id AS source_id, s.label AS source_label, s.text AS source_text
+      `${RECALL_SELECT}
+       WHERE f.valid_at IS NOT NULL AND f.valid_at <= $1 AND (f.invalid_at IS NULL OR f.invalid_at > $1)
+       ORDER BY f.valid_at DESC LIMIT ${lim}`,
+      [asOf],
+    );
+    return rows.map(mapRecalledRow);
+  }
+
+  /** Rank Fact ids by semantic similarity to a query embedding, temporally filtered. */
+  async rankBySemantic(queryEmbedding: number[], asOf: Date | null, limit = 20): Promise<string[]> {
+    const lim = clampLimit(limit);
+    const vec = formatVector(queryEmbedding);
+    if (asOf === null) {
+      const { rows } = await this.pool.query(
+        `SELECT id FROM facts
+         WHERE embedding IS NOT NULL AND expired_at IS NULL
+         ORDER BY embedding <=> $1::vector LIMIT ${lim}`,
+        [vec],
+      );
+      return rows.map((r) => r.id as string);
+    }
+    const { rows } = await this.pool.query(
+      `SELECT id FROM facts
+       WHERE embedding IS NOT NULL
+         AND valid_at IS NOT NULL AND valid_at <= $2 AND (invalid_at IS NULL OR invalid_at > $2)
+       ORDER BY embedding <=> $1::vector LIMIT ${lim}`,
+      [vec, asOf],
+    );
+    return rows.map((r) => r.id as string);
+  }
+
+  /** Rank Fact ids by Postgres full-text relevance, temporally filtered. */
+  async rankByKeyword(query: string, asOf: Date | null, limit = 20): Promise<string[]> {
+    const lim = clampLimit(limit);
+    const temporal =
+      asOf === null
+        ? "f.expired_at IS NULL"
+        : "f.valid_at IS NOT NULL AND f.valid_at <= $2 AND (f.invalid_at IS NULL OR f.invalid_at > $2)";
+    const params: unknown[] = asOf === null ? [query] : [query, asOf];
+    const { rows } = await this.pool.query(
+      `SELECT f.id,
+              ts_rank(${FACT_TSVECTOR}, plainto_tsquery('english', $1)) AS rank
        FROM facts f
        JOIN entities subj ON subj.id = f.subject_id
        JOIN entities obj  ON obj.id  = f.object_id
-       JOIN sources  s    ON s.id    = f.source_id
-       WHERE f.expired_at IS NULL
-         AND ($1 = ''
-              OR subj.name ILIKE '%' || $1 || '%'
-              OR obj.name  ILIKE '%' || $1 || '%'
-              OR f.predicate ILIKE '%' || $1 || '%')
-       ORDER BY f.created_at DESC`,
-      [query.trim()],
+       WHERE plainto_tsquery('english', $1) @@ ${FACT_TSVECTOR} AND ${temporal}
+       ORDER BY rank DESC LIMIT ${lim}`,
+      params,
     );
+    return rows.map((r) => r.id as string);
+  }
 
-    return rows.map((row) => ({
-      id: row.id as string,
-      subject: row.subject_name as string,
-      predicate: row.predicate as string,
-      object: row.object_name as string,
-      validAt: (row.valid_at as Date | null) ?? null,
-      invalidAt: (row.invalid_at as Date | null) ?? null,
-      current: row.expired_at === null,
-      source: {
-        id: row.source_id as string,
-        label: (row.source_label as string | null) ?? null,
-        text: row.source_text as string,
-      },
-    }));
+  /** Load full RecalledFact details for ids (caller preserves the fused order). */
+  async loadRecalledByIds(ids: string[]): Promise<Map<string, RecalledFact>> {
+    if (ids.length === 0) return new Map();
+    const { rows } = await this.pool.query(`${RECALL_SELECT} WHERE f.id = ANY($1::uuid[])`, [ids]);
+    return new Map(rows.map((row) => [row.id as string, mapRecalledRow(row)]));
   }
 }

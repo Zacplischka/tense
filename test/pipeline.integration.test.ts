@@ -5,7 +5,8 @@ import { TemporalGraphStore } from "../src/db/store.js";
 import { StubExtractor } from "../src/extraction/stub.js";
 import { EntityResolver } from "../src/resolution/entity-resolver.js";
 import { defaultPredicateRegistry } from "../src/supersession/registry.js";
-import { recall, remember, type RememberDeps } from "../src/pipeline.js";
+import { remember, type RememberDeps } from "../src/pipeline.js";
+import { recall } from "../src/retrieval/recall.js";
 
 const pool = new pg.Pool({ connectionString: TEST_DATABASE_URL });
 
@@ -30,7 +31,7 @@ describe("remember pipeline (extract -> resolve -> supersede -> persist)", () =>
   it("ingests a Source and recalls the Fact with its Source", async () => {
     await remember(deps, "Zach reports to Alice.", "org-chart-q1");
 
-    const facts = await recall(store, "Zach");
+    const facts = await recall({ store }, "Zach");
     expect(facts).toHaveLength(1);
     expect(facts[0]).toMatchObject({ subject: "Zach", predicate: "reports-to", object: "Alice", current: true });
     expect(facts[0]?.source.label).toBe("org-chart-q1");
@@ -43,7 +44,7 @@ describe("remember pipeline (extract -> resolve -> supersede -> persist)", () =>
     expect(second.factsSuperseded.map((f) => f.object)).toEqual(["Alice"]);
     expect(second.factsCreated.map((f) => f.object)).toEqual(["Bob"]);
 
-    const current = await recall(store, "Zach");
+    const current = await recall({ store }, "Zach");
     expect(current).toHaveLength(1);
     expect(current[0]?.object).toBe("Bob");
 
@@ -58,7 +59,7 @@ describe("remember pipeline (extract -> resolve -> supersede -> persist)", () =>
 
     const { rows } = await pool.query("SELECT count(*)::int AS n FROM entities WHERE normalized_name IN ('zach','zachary')");
     expect(rows[0].n).toBe(1); // single subject Entity
-    const current = await recall(store, "report");
+    const current = await recall({ store }, "report");
     expect(current).toHaveLength(1);
     expect(current[0]?.object).toBe("Bob");
   });

@@ -21,3 +21,24 @@ The retrieval module behind `recall(query, as_of?)`: hybrid semantic + keyword s
 ## Blocked by
 
 - `07-wire-remember-pipeline`
+
+## Comments
+
+✅ **Completed 2026-06-06.** Verified live over MCP + real Postgres.
+
+- `src/retrieval/recall.ts` — `recall(deps, query, { asOf, limit })`. Hybrid:
+  pgvector cosine (`embedding <=> $q`) + Postgres full-text (`ts_rank` over
+  subject/predicate/object), fused with **RRF (k=60 pinned**, `src/retrieval/
+  rrf.ts`, pure + unit-tested).
+- **filter-then-fuse**: both rankers apply the temporal filter in SQL, so
+  superseded Facts never enter ranking; RRF fuses after. Documented in the module.
+- **Temporal filter**: default = `expired_at IS NULL`; `as_of T` =
+  `valid_at <= T AND (invalid_at IS NULL OR invalid_at > T)` (ADR 0002).
+  Empty query browses the filtered set.
+- Each result carries Source citation + validity interval.
+- Tests: RRF ordering (pure oracle); recall integration (current-only default,
+  as_of before/after, citation+interval, empty-query browse).
+
+**Live MCP check:** `recall "who does Zach report to"` → Bob (Current);
+`recall … as_of=2024-03-01` → Alice (valid 2024-01-01→2024-06-01) — each with
+Source + interval. 72 tests green.

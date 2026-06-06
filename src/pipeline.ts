@@ -1,5 +1,5 @@
 import type { Entity } from "./domain/types.js";
-import type { RecalledFact, TemporalGraphStore } from "./db/store.js";
+import type { TemporalGraphStore } from "./db/store.js";
 import type { Extractor } from "./extraction/types.js";
 import type { EntityResolver } from "./resolution/entity-resolver.js";
 import type { PredicateRegistry } from "./supersession/registry.js";
@@ -99,11 +99,6 @@ export async function remember(
   }
 
   return summary;
-}
-
-/** Recall Current Facts matching the query, each with its Source citation. */
-export async function recall(store: TemporalGraphStore, query: string): Promise<RecalledFact[]> {
-  return store.recallCurrent(query);
 }
 
 /** Resolve a name to an existing Entity (exact/fuzzy) or create a new one. */
