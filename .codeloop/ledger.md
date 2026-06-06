@@ -83,8 +83,7 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   (migration 0004) now accelerates the `entities` ILIKE search. STILL deferred: the
   entity RESOLVER's `similarity() >=` fuzzy lookup (needs a GUC-safe query rewrite)
   and an ivfflat index on facts.embedding for rankBySemantic (approximate; needs
-  lists tuning). Also: `isCurrent` in domain/types.ts is dead (0 refs) — tiny
-  cruft-removal candidate (V≈2 alone). NOTE (iter 28 scan): a dead-export grep flags
+  lists tuning). ~~`isCurrent` dead export~~ — REMOVED (iter 32). NOTE (iter 28 scan): a dead-export grep flags
   many types (RememberSummary, RecallOptions, GraphStats, FactChange, ResolverInput,
   …) but those are FALSE POSITIVES — used as param/return types within their own
   module (and are public API). `isCurrent` is the only genuinely dead export. Don't
@@ -774,3 +773,22 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Verification**: n/a (no code change); tree green at start (lint ✓, 174 tests).
 - **Commit**: 5752a52 (ledger only)
 - **Saturation**: none changed (no dimension acted on); 3rd scout of the run (20, 29, 31).
+
+### Iteration 32 · cruft-removal · mode=explore
+- **Change**: Remove the dead, unused `isCurrent(fact)` export from
+  `src/domain/types.ts` — the codebase's only genuinely-dead export (0 refs; iter-28
+  scan). Currency is checked everywhere via `expired_at IS NULL` (SQL) /
+  `expiredAt === null`, never this helper, and the `expiredAt` field already
+  documents "Null iff the Fact is Current", so the helper was redundant + misleading.
+- **Explore note**: 32 mod 4 == 0. Least-recently-touched dim is cruft-removal
+  (never acted on); this exercises it with its one genuine item. (DX — the other
+  neglected dim — had only Prettier/CI, both V≈2/speculative.)
+- **Net-positive**: improves cruft-removal/clarity (declutters a core domain file;
+  removes a dead "canonical" helper the code deliberately doesn't use); protects
+  everything (0 refs — lint no-unused + typecheck + full suite confirm nothing
+  broke; no library API contract, the package ships an MCP binary). V=3 C=5 S=5.
+- **Files**: src/domain/types.ts.
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (39 files / 174 tests, unchanged).
+- **Commit**: 83ebc18
+- **Saturation**: none changed (cruft-removal produced V=3).

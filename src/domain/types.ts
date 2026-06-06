@@ -43,8 +43,3 @@ export interface Fact {
   /** Null iff the Fact is Current. */
   expiredAt: Date | null;
 }
-
-/** True iff the Fact has not been superseded (transaction time still open). */
-export function isCurrent(fact: Fact): boolean {
-  return fact.expiredAt === null;
-}
