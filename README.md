@@ -159,15 +159,20 @@ every other value is exactly what the tools return.)
 ```json
 [{ "id": "3d7b…", "subject": "Zach", "predicate": "reports-to", "object": "Bob",
    "validAt": "2024-06-01T00:00:00.000Z", "invalidAt": null, "current": true,
-   "source": { "id": "7deb…", "label": "org-2024q2", "text": "[2024-06-01] Zach reports to Bob." } }]
+   "source": { "id": "7deb…", "label": "org-2024q2", "text": "[2024-06-01] Zach reports to Bob." },
+   "reinforcedBy": 1 }]
 ```
+
+`reinforcedBy` is how many distinct Sources assert the Fact (origin + any
+[Reaffirmations](#how-it-works)); a higher count means a more-confirmed Fact.
 
 **4. `recall` point-in-time** — same `query` with `as_of: "2024-03-01"` returns who was Current *then* — Alice — closed off at the moment Bob took over:
 
 ```json
 [{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice",
    "validAt": "2024-01-01T00:00:00.000Z", "invalidAt": "2024-06-01T00:00:00.000Z", "current": false,
-   "source": { "id": "0d67…", "label": "org-2024q1", "text": "[2024-01-01] Zach reports to Alice." } }]
+   "source": { "id": "0d67…", "label": "org-2024q1", "text": "[2024-01-01] Zach reports to Alice." },
+   "reinforcedBy": 1 }]
 ```
 
 **5. `history`** — `entity: "Zach"`, `predicate: "reports-to"` returns the whole chain chronologically: the closed Alice Fact, then the Current Bob Fact (same shape as the recall rows above).

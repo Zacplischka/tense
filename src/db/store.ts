@@ -64,7 +64,14 @@ export interface RecalledFact {
   validAt: Date | null;
   invalidAt: Date | null;
   current: boolean;
+  /** The origin Source (first to assert this Fact). */
   source: { id: string; label: string | null; text: string };
+  /**
+   * How many distinct Sources assert this Fact (origin + Reaffirmations, ADR
+   * 0005) — a provenance-strength signal so a reader can weigh a multiply-
+   * confirmed Fact above a single mention. Always ≥1 for pipeline-ingested Facts.
+   */
+  reinforcedBy: number;
 }
 
 const FACT_COLUMNS =
@@ -116,7 +123,8 @@ export function formatVector(embedding: number[]): string {
 const RECALL_SELECT = `
   SELECT f.id, f.predicate, f.valid_at, f.invalid_at, f.expired_at,
          subj.name AS subject_name, obj.name AS object_name,
-         s.id AS source_id, s.label AS source_label, s.text AS source_text
+         s.id AS source_id, s.label AS source_label, s.text AS source_text,
+         (SELECT count(*)::int FROM fact_sources fs WHERE fs.fact_id = f.id) AS reinforced_by
   FROM facts f
   JOIN entities subj ON subj.id = f.subject_id
   JOIN entities obj  ON obj.id  = f.object_id
@@ -140,6 +148,7 @@ function mapRecalledRow(row: Record<string, unknown>): RecalledFact {
       label: (row.source_label as string | null) ?? null,
       text: row.source_text as string,
     },
+    reinforcedBy: (row.reinforced_by as number) ?? 0,
   };
 }
 

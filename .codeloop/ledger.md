@@ -2,6 +2,23 @@
 
 Source of truth for the autonomous improvement loop. Newest log entries last.
 
+## Steering (user directive — overrides default dimension rotation)
+
+**As of iteration 8 the user asked the loop to focus on FUNCTIONALITY and UX for
+the rest of the run.** Prioritize candidates that expand what the system does for
+its users and improve their experience:
+- **Functionality** = new-capability: richer `remember`/`recall`/tool behavior,
+  new MCP tools, surfacing signals the model already tracks but hides.
+- **UX** = the agent-facing tool experience (clear outputs, sensible defaults,
+  helpful errors, exposed knobs) AND the human-facing **viewer** (Next.js app in
+  `viewer/` — the major untouched UX surface; survey it and improve it, verifying
+  via its own build/run since it's outside the main vitest gate).
+
+Keep the net-positive bar, verification, and one-coherent-deliverable rules. The
+diversify/explore rotation is now secondary to this focus; still avoid needless
+repetition. Tests/lint/docs are supporting acts, not the main deliverable, unless
+they directly serve a functionality/UX change.
+
 ## Config
 
 - **Project**: `tense` — temporal memory for AI agents (MCP server over a
@@ -61,6 +78,16 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
 - [perf] Demo-scale only today: entity-resolver trigram fuzzy match and the
   recall rankers do seq scans (code says "fine at demo scale"). A real perf turn
   = add pg_trgm GIN + ivfflat indexes via a migration. Deferred until scale matters.
+
+_Functionality/UX focus (user steer, iter 8) — prioritize these:_
+- [UX] **Viewer survey + improvement** (`viewer/`, Next.js) — the major untouched
+  human-facing surface. Survey it next; verify via `cd viewer && pnpm build`/run,
+  not the vitest gate. Likely wins: surface the new `reinforcedBy`/`stats`/
+  `entities` data, clearer Current-vs-superseded affordances, empty/error states.
+- [functionality] Expose `limit` on the `recall` MCP tool (recall() already
+  supports it; the tool hides it) — also add an optional `predicate` filter.
+- [functionality] `recall`/`entities` could return `reinforcedBy`-sorted or
+  filtered views; consider a `min_reinforced` knob now that the signal exists.
 
 ## Log
 
@@ -188,3 +215,23 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   · `npm run build` ✓ · `npm test` ✓ (27 files / 118 tests, unchanged).
 - **Commit**: e95343b
 - **Saturation**: none changed (DX/tooling produced V=4, not low-value).
+
+### Iteration 8 · new-capability (functionality) · mode=exploit
+- **User steer**: mid-run the user redirected the loop to FUNCTIONALITY + UX (see
+  top-of-ledger Steering). This overrode the explore-turn's least-recently-touched
+  mechanic (would have been a perf index); picked a functionality deliverable.
+- **Change**: Surface provenance strength to readers — add `reinforcedBy` (count
+  of distinct Sources asserting a Fact, origin + Reaffirmations per ADR 0005) to
+  `RecalledFact`, populated via a correlated subquery in the shared `RECALL_SELECT`
+  so it flows through `recall`, `history`, the empty-query browse, and `allFacts`.
+  The signal was tracked (fact_sources) but invisible; now an agent can weigh a
+  multiply-confirmed Fact above a single mention.
+- **Net-positive**: improves functionality + agent UX (richer, trust-aware reads);
+  protects correctness/existing readers (additive backwards-compatible field;
+  shared read path but every consumer still works — full suite green). V=4 C=4 S=4.
+- **Files**: src/db/store.ts (RecalledFact + RECALL_SELECT + mapRecalledRow),
+  test/recall-provenance.integration.test.ts (new), README.md (worked example).
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (28 files / 121 tests; +1 file, +3 tests vs iter 7).
+- **Commit**: 2736617
+- **Saturation**: none changed (functionality produced V=4).
