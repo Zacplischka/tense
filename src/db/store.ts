@@ -228,6 +228,14 @@ export class TemporalGraphStore {
     return rows[0] ? mapEntity(rows[0]) : null;
   }
 
+  /** Entity names (capped) to hint extraction toward reusing existing Entities. */
+  async listEntityNames(limit = 200): Promise<string[]> {
+    const { rows } = await this.pool.query("SELECT name FROM entities ORDER BY created_at DESC LIMIT $1", [
+      limit,
+    ]);
+    return rows.map((r) => r.name as string);
+  }
+
   async getFact(id: string): Promise<Fact | null> {
     const { rows } = await this.pool.query(`SELECT ${FACT_COLUMNS} FROM facts WHERE id = $1`, [id]);
     return rows[0] ? mapFact(rows[0]) : null;

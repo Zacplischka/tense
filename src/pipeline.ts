@@ -1,78 +1,100 @@
+import type { Entity } from "./domain/types.js";
+import type { RecalledFact, TemporalGraphStore } from "./db/store.js";
 import type { Extractor } from "./extraction/types.js";
-import type { FactClose, RecalledFact, TemporalGraphStore } from "./db/store.js";
+import type { EntityResolver } from "./resolution/entity-resolver.js";
+import type { PredicateRegistry } from "./supersession/registry.js";
+import type { ProviderClient } from "./provider/types.js";
+import { resolveSupersession } from "./supersession/resolver.js";
+import { applySupersessionPlan, toCandidateFact } from "./supersession/apply.js";
 
 /**
- * TEMPORARY single-valued predicate set for the walking skeleton (slice 01).
- *
- * This is the minimum needed to drive supersession-shaped data through the real
- * bi-temporal columns and the Current partial index. It is deliberately a flat
- * set, NOT the policy: slice 03 replaces it with the predicate registry +
- * deterministic resolver (cardinality path, valid-time direction rule,
- * out-of-order/born-expired handling), and slice 07 rewires this pipeline to it.
+ * The converged ingest path (slice 07): remember = extract → resolve Entities →
+ * supersede (cardinality) → persist atomically, then embed best-effort. The
+ * three independently-built modules become one pipeline here.
  */
-const SINGLE_VALUED_PREDICATES = new Set(["reports-to", "lives-in"]);
+export interface RememberDeps {
+  store: TemporalGraphStore;
+  extractor: Extractor;
+  resolver: EntityResolver;
+  registry: PredicateRegistry;
+  /** Optional: embeddings for hybrid recall. Omitted in unit tests. */
+  provider?: ProviderClient;
+  /** Injectable clock so transaction time is deterministic in tests. */
+  now?: () => Date;
+}
+
+export interface FactSummary {
+  id: string;
+  subject: string;
+  predicate: string;
+  object: string;
+}
 
 export interface RememberSummary {
   sourceId: string;
-  factsCreated: Array<{ id: string; subject: string; predicate: string; object: string }>;
-  factsSuperseded: Array<{ id: string; subject: string; predicate: string; object: string }>;
+  factsCreated: FactSummary[];
+  factsSuperseded: FactSummary[];
 }
 
-/**
- * Ingest a Source: extract Facts, resolve Entities, persist. A new Current Fact
- * on a single-valued Predicate closes the prior one via the store's atomic
- * Supersession boundary.
- */
 export async function remember(
-  store: TemporalGraphStore,
-  extractor: Extractor,
+  deps: RememberDeps,
   text: string,
   sourceLabel: string | null = null,
 ): Promise<RememberSummary> {
-  const source = await store.insertSource(text, sourceLabel);
-  const extracted = await extractor.extract(text);
+  const { store, extractor, resolver, registry, provider } = deps;
+  const clock = deps.now ?? (() => new Date());
 
+  // Extract BEFORE any write, so a bad-output failure leaves the graph untouched
+  // (no orphan Source). Throws ExtractionError on malformed LLM output.
+  const knownEntities = await store.listEntityNames();
+  const extracted = await extractor.extract(text, knownEntities);
+
+  const source = await store.insertSource(text, sourceLabel);
   const summary: RememberSummary = { sourceId: source.id, factsCreated: [], factsSuperseded: [] };
 
   for (const fact of extracted.facts) {
-    const subject = await store.upsertEntity(fact.subject);
-    const object = await store.upsertEntity(fact.object);
+    const subject = await resolveOrCreate(resolver, store, fact.subject);
+    const object = await resolveOrCreate(resolver, store, fact.object);
 
-    const newFact = {
+    const candidates = (await store.currentFactsFor(subject.id, fact.predicate)).map(toCandidateFact);
+    const plan = resolveSupersession({
+      newFact: { predicate: fact.predicate, validAt: fact.validAt },
+      candidateFacts: candidates,
+      registry,
+      now: clock(),
+    });
+
+    const { closed, inserted } = await applySupersessionPlan(store, plan, {
       subjectId: subject.id,
       predicate: fact.predicate,
       objectId: object.id,
       sourceId: source.id,
-      validAt: fact.validAt,
-      invalidAt: null,
-      expiredAt: null,
-    };
+    });
 
-    if (SINGLE_VALUED_PREDICATES.has(fact.predicate)) {
-      const priorCurrent = await store.currentFactsFor(subject.id, fact.predicate);
-      const now = new Date();
-      // Close the prior Current Fact: valid-time end at the new Fact's valid_at
-      // when known, else transaction time (the documented degenerate fallback —
-      // never silently reused as transaction time). Transaction-time end is now.
-      const closes: FactClose[] = priorCurrent.map((prior) => ({
-        factId: prior.id,
-        invalidAt: fact.validAt ?? now,
-        expiredAt: now,
-      }));
+    summary.factsCreated.push({
+      id: inserted.id,
+      subject: subject.name,
+      predicate: fact.predicate,
+      object: object.name,
+    });
+    for (const c of closed) {
+      const closedObject = await store.getEntity(c.objectId);
+      summary.factsSuperseded.push({
+        id: c.id,
+        subject: subject.name,
+        predicate: fact.predicate,
+        object: closedObject?.name ?? c.objectId,
+      });
+    }
 
-      const { closed, inserted } = await store.supersedeAndInsert(closes, newFact);
-      summary.factsCreated.push(describe(inserted.id, subject.name, fact.predicate, object.name));
-      for (const c of closed) {
-        // The closed Fact has its own object (e.g. the prior manager), distinct
-        // from the incoming Fact's object — resolve it rather than mislabeling.
-        const closedObject = await store.getEntity(c.objectId);
-        summary.factsSuperseded.push(
-          describe(c.id, subject.name, fact.predicate, closedObject?.name ?? c.objectId),
-        );
+    // Best-effort embedding for hybrid recall — never blocks or fails the write.
+    if (provider) {
+      try {
+        const [embedding] = await provider.embed([`${subject.name} ${fact.predicate} ${object.name}`]);
+        if (embedding) await store.setFactEmbedding(inserted.id, embedding);
+      } catch {
+        // embedding is best-effort; recall still works on keyword + temporal filter
       }
-    } else {
-      const inserted = await store.insertFact(newFact);
-      summary.factsCreated.push(describe(inserted.id, subject.name, fact.predicate, object.name));
     }
   }
 
@@ -84,6 +106,16 @@ export async function recall(store: TemporalGraphStore, query: string): Promise<
   return store.recallCurrent(query);
 }
 
-function describe(id: string, subject: string, predicate: string, object: string) {
-  return { id, subject, predicate, object };
+/** Resolve a name to an existing Entity (exact/fuzzy) or create a new one. */
+async function resolveOrCreate(
+  resolver: EntityResolver,
+  store: TemporalGraphStore,
+  name: string,
+): Promise<Entity> {
+  const result = await resolver.resolve(name);
+  if (result.entityId) {
+    const existing = await store.getEntity(result.entityId);
+    if (existing) return existing;
+  }
+  return store.upsertEntity(name);
 }

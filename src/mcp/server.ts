@@ -1,17 +1,16 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { Extractor } from "../extraction/types.js";
-import type { TemporalGraphStore } from "../db/store.js";
-import { recall, remember } from "../pipeline.js";
+import { recall, remember, type RememberDeps } from "../pipeline.js";
 
 /**
- * Build the Tense MCP server over a store + extractor. Slice 01 exposes
- * `remember` and `recall`; `recall(as_of?)` and `history` arrive in slices 09/10.
+ * Build the Tense MCP server over the ingest dependencies. Slice 01 exposed
+ * `remember`/`recall`; slices 09/10 add `recall(as_of?)` and `history`.
  *
- * Tool results are returned as JSON text content so any MCP client can read them
- * and so the Inspector CLI round-trip is inspectable.
+ * Tool results are JSON text so any MCP client can read them and the Inspector
+ * CLI round-trip is inspectable. Errors are returned as `isError` results rather
+ * than thrown, so a bad extraction never takes the server down.
  */
-export function createMcpServer(store: TemporalGraphStore, extractor: Extractor): McpServer {
+export function createMcpServer(deps: RememberDeps): McpServer {
   const server = new McpServer({ name: "tense", version: "0.1.0" });
 
   server.registerTool(
@@ -28,8 +27,16 @@ export function createMcpServer(store: TemporalGraphStore, extractor: Extractor)
       },
     },
     async ({ text, source }) => {
-      const summary = await remember(store, extractor, text, source ?? null);
-      return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
+      try {
+        const summary = await remember(deps, text, source ?? null);
+        return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `remember failed: ${message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -45,7 +52,7 @@ export function createMcpServer(store: TemporalGraphStore, extractor: Extractor)
       },
     },
     async ({ query }) => {
-      const facts = await recall(store, query);
+      const facts = await recall(deps.store, query);
       return { content: [{ type: "text", text: JSON.stringify(facts, null, 2) }] };
     },
   );

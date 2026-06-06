@@ -24,3 +24,26 @@ The convergence slice: replace slice 01's stub with the real ingest pipeline. `r
 - `03-supersession-resolver-cardinality`
 - `05-extraction`
 - `06-entity-resolution`
+
+## Comments
+
+✅ **Completed 2026-06-06.** The convergence slice — verified against real
+OpenRouter + real Postgres over real stdio MCP.
+
+- `src/pipeline.ts` rewritten: `remember(deps, text, source)` runs extract →
+  resolveOrCreate Entities (slice 06) → `resolveSupersession` (slice 03) →
+  `applySupersessionPlan` (atomic) → best-effort embedding (slice 02). The
+  temporary slice-01 single-valued set is gone. `RememberDeps` injects store /
+  extractor / resolver / registry / provider / clock.
+- **No-corruption ordering:** extraction runs before any write, so a bad-output
+  failure leaves the graph untouched (no orphan Source) — tested.
+- **MCP adapter** returns `isError` results instead of throwing → a bad
+  extraction never crashes the server (in-memory client↔server test +
+  extraction-failure test).
+- Summary reports Facts created and superseded (closed Fact's real object
+  resolved, not the incoming one).
+
+**Real e2e** (Inspector CLI): `remember "Zach reports to Alice. Zach knows Carol."`
+then `remember "Zach now reports to Bob."` → psql shows Alice closed
+(`invalid_at` via null-`valid_at` transaction-time fallback), Bob + Carol
+Current, exactly one Zach Entity (no fork), all Facts embedded. 62 tests green.

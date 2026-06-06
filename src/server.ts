@@ -3,7 +3,10 @@ import "./env.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createPool } from "./db/pool.js";
 import { TemporalGraphStore } from "./db/store.js";
-import { StubExtractor } from "./extraction/stub.js";
+import { LlmExtractor } from "./extraction/llm-extractor.js";
+import { EntityResolver } from "./resolution/entity-resolver.js";
+import { defaultPredicateRegistry } from "./supersession/registry.js";
+import { createProvider } from "./provider/openrouter.js";
 import { createMcpServer } from "./mcp/server.js";
 
 /**
@@ -14,10 +17,17 @@ import { createMcpServer } from "./mcp/server.js";
  */
 async function main(): Promise<void> {
   const pool = createPool();
-  const store = new TemporalGraphStore(pool);
-  const extractor = new StubExtractor();
-  const server = createMcpServer(store, extractor);
+  const provider = createProvider(); // validates OPENROUTER_API_KEY / models
 
+  const deps = {
+    store: new TemporalGraphStore(pool),
+    extractor: new LlmExtractor(provider),
+    resolver: new EntityResolver(pool),
+    registry: defaultPredicateRegistry(),
+    provider,
+  };
+
+  const server = createMcpServer(deps);
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("[tense] MCP server ready on stdio");
