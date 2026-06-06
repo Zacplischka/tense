@@ -1445,3 +1445,35 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   build + correct ARIA usage, per the established viewer-a11y pattern (16/27/44). → pass.
 - **Commit**: ad61461
 - **Saturation**: accessibility active (V=3) — no flag change.
+
+### Iteration 60 · — · mode=scout (fresh survey + explore)
+- **Outcome**: No code change. Fresh whole-codebase survey on a turn that's BOTH
+  fresh-survey (60%5==0) and explore (60%4==0), with diversify blocking UX(58)/
+  a11y(59). Explore targets (architecture 21, cruft 32, DX 40) all confirmed with
+  no eligible V≥3:
+  - architecture: invariant intact (store.ts imports only pg + domain types — no
+    supersession policy); a store split (now 755 LOC) would ripple through
+    pipeline/recall/server/preview/tests/viewer via the shared pool/RECALL_SELECT/
+    mappers → net-negative, not safe. Read resolver.ts fresh — clean, pure, tested.
+  - cruft: dead-export scan = nothing genuinely dead (the iter-28/48 false-positive
+    pattern still holds).
+  - DX: viewer has no eslint deps (lint = new deps + install + fixes = sprawl);
+    Prettier = V2.
+  - generative-switch candidates (as_of stats, resolver invariant-test, neighbors)
+    all V2 — none clears the bar. SCOUT > forcing. (Last scout iter 54.)
+- **Backlog (refreshed this survey)**:
+  - [tests] MCP-boundary test for recall `include_sources`/`citedBy` (lock the
+    iter-57 wire contract, iter-43/47 pattern). V2.
+  - [a11y] iter-58 `citedBy` is `title`-only (mouse/hover) — not reliably SR/
+    keyboard accessible; expose via sr-only text on a future a11y turn. V2-3.
+  - [generative/tests] Homegrown invariant/fuzz suite over the pure supersession
+    resolver (no new deps) — hardens the core beyond example tests. V2-3.
+  - [functionality] `as_of` on `stats` (point-in-time counts) — opt-in. V2.
+  - [architecture-watch] store.ts at 755 LOC — only split if a safe seam emerges
+    (e.g. read/introspection split) AND the deps-wiring ripple is worth it; today it
+    isn't. Don't force.
+- **Files**: none (scout) — ledger only.
+- **Verification**: n/a (no code change); tree green at start (197 tests, viewer ✓).
+- **Commit**: 47d79c2 (ledger only)
+- **Saturation**: ALL flags cleared (fresh survey, iter 60) — all already 0. Mature
+  codebase; the productive dims (functionality/UX) were diversify-blocked this turn.
