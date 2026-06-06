@@ -1247,3 +1247,25 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   typecheck + build ✓). → pass.
 - **Commit**: e16c7ae
 - **Saturation**: new-capability/functionality active (V=3) — no flag change.
+
+### Iteration 52 · docs · mode=explore
+- **Change**: refreshed the README "live viewer" section, which described only
+  grey-out/glow-in/ingestion and omitted every interactive feature added since.
+  Added a bullet list documenting: the as-of scrubber (point-in-time rewind — the
+  bi-temporal model made visual), the filterable Entity index, the click-to-inspect
+  detail panel (valid interval + learnedAt + Source count + clickable counterparts
+  + Escape-to-close), and the staleness banner. Closes the gap backlogged in iter 51.
+- **Net-positive**: improves docs accuracy (the front door now represents the
+  headline viewer — esp. the as-of scrubber, the project's signature demo). Serves
+  UX by documenting it. Protects accuracy — every claim cross-checked against the
+  implementation (iters 15/27/34/41/44/46/49); described nothing unimplemented.
+  V=3 C=5 S=5.
+- **Why docs on this explore turn**: explore (52%4==0) → least-recently-touched
+  eligible dim. Architecture (21) mature/no-safe-candidate; performance (24)
+  deferred/risky; cruft (32) only false-positive exports (iter 28/48); docs (38)
+  had this concrete, real gap. Diversify blocks functionality(51)/correctness(50).
+- **Files**: README.md ("The live viewer" section).
+- **Verification**: docs-only (no build/test impact); section renders cleanly,
+  claims verified against the code, tree clean. → pass.
+- **Commit**: edf4d56
+- **Saturation**: docs active (V=3) — no flag change.

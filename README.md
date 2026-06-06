@@ -250,6 +250,18 @@ superseded Facts greyed/dashed, updating live as Facts change. New Entities and
 Facts glow in on a stable layout (existing nodes never move), so you can watch the
 graph *grow*.
 
+Beyond watching it grow, the viewer is **interactive**:
+
+- **As-of scrubber** — set a past date and the graph rewinds to whatever was
+  Current *then* (the bi-temporal model made visual); clear it to return to live.
+- **Entity index** — a name-sorted, filterable list of every Entity; select one
+  (by click or keyboard) to open a side panel.
+- **Detail panel** — lists every Fact touching the selected Entity with its valid
+  interval, when the system *learned* it, and its Source count; each counterpart
+  Entity is a link, so you can walk the graph Fact by Fact. Escape closes it.
+- **Staleness banner** — if the live poll drops, a banner flags that the graph may
+  be out of date rather than silently showing frozen state.
+
 The viewer is **read-mostly**: alongside the read path it exposes one local
 ingestion endpoint, `POST /api/remember`, behind a drop-text box — paste text and
 watch the graph react. The same endpoint is what the Claude Code session hook
