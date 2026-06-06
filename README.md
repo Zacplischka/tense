@@ -196,6 +196,31 @@ merge is visible rather than silent.
   "predicates": [{ "predicate": "reports-to", "current": 1, "total": 2 }] }
 ```
 
+**7. `preview`** — a dry-run of step 2 *before* committing it. `text: "[2024-09-01] Zach reports to Dana."` reports what `remember` *would* do — create the Dana Fact and supersede Bob — **writing nothing**:
+
+```json
+{ "factsToCreate": [{ "subject": "Zach", "predicate": "reports-to", "object": "Dana" }],
+  "factsToSupersede": [{ "subject": "Zach", "predicate": "reports-to", "object": "Bob" }],
+  "factsToReaffirm": [],
+  "entitiesResolved": [{ "input": "Zach", "resolvedTo": "Zach", "reason": "exact" },
+                       { "input": "Dana", "resolvedTo": "Dana", "reason": "new" }] }
+```
+
+**8. `changes`** — the transaction-time feed (`since: "1970-01-01"` for "everything"), newest change first. Each Fact carries the recall fields **plus** `learnedAt` / `retiredAt` (wall-clock — when the *system* knew it); `validAt`/`invalidAt`/`reinforcedBy` are omitted below for brevity. An agent can sync incrementally:
+
+```json
+[{ "id": "845d…", "subject": "Zach", "predicate": "reports-to", "object": "Bob",
+   "current": true,  "learnedAt": "2026-06-06T16:32:58.351Z", "retiredAt": null,
+   "source": { "id": "3c2f…", "label": "org-2024q2", "text": "[2024-06-01] Zach reports to Bob." } },
+ { "id": "ad57…", "subject": "Zach", "predicate": "reports-to", "object": "Alice",
+   "current": false, "learnedAt": "2026-06-06T16:32:58.345Z", "retiredAt": "2026-06-06T16:32:58.351Z",
+   "source": { "id": "5515…", "label": "org-2024q1", "text": "[2024-01-01] Zach reports to Alice." } }]
+```
+
+Note `learnedAt`/`retiredAt` (transaction time — when the system learned/retired the
+Fact) are distinct from `validAt`/`invalidAt` (valid time — when it was true in the
+world); that bi-temporal split is the whole point.
+
 ### The live viewer
 
 ```bash

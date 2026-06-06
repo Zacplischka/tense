@@ -630,3 +630,21 @@ priority:_
   `npm test` ✓ (39 files / 174 tests; +1 file, +5 tests vs iter 24).
 - **Commit**: bd59b0f
 - **Saturation**: cleared by fresh survey (all 0); functionality produced V=4.
+
+### Iteration 26 · docs · mode=exploit
+- **Change**: Extend the README "Worked example" with steps 7 (`preview`) and 8
+  (`changes`) — the two distinctive tools the example didn't cover. Captured from a
+  real deterministic run (StubExtractor) so the shapes/values are exact (UUIDs +
+  transaction-time stamps abbreviated; the `changes` example notes the recall
+  fields it omits for brevity). Shows the dry-run output (factsToCreate/Supersede +
+  entitiesResolved) and the transaction-time feed (learnedAt/retiredAt), with a
+  note on the valid-time vs transaction-time split.
+- **Net-positive**: improves docs (adoption surface for the non-obvious distinctive
+  capabilities — their one-line table entries don't convey the output shapes);
+  protects all code axes (docs-only). V=3 C=4 S=5. Diversifies off perf/new-cap and
+  documents the functionality shipped in iters 19/25.
+- **Files**: README.md.
+- **Verification**: docs-only; examples captured from a real run (throwaway script,
+  deleted). `npm run lint` ✓ (code unchanged); full suite not run (markdown-only).
+- **Commit**: 7ac4be4
+- **Saturation**: none changed (docs produced V=3).
