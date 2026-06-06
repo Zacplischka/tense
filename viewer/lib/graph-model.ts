@@ -1,9 +1,10 @@
 /**
- * Pure mapping from a graph snapshot to a renderable model. No DB, no React, so
- * it is unit-testable — and it is the one place the viewer decides what counts as
- * Current. It trusts the snapshot's `current` flag (which the query derives from
- * `expired_at IS NULL`, matching the store's partial index) and NEVER recomputes
- * "current" from `invalid_at` — valid time and transaction time are distinct.
+ * Pure mapping from a graph snapshot to graph data for the renderer. No DB, no
+ * React, so it is unit-testable — and it is the one place the viewer decides what
+ * counts as Current. It trusts the snapshot's `current` flag (which the query
+ * derives from `expired_at IS NULL`, matching the store's partial index) and
+ * NEVER recomputes "current" from `invalid_at` — valid time and transaction time
+ * are distinct. Layout (positions) is owned by the force-graph library, not here.
  */
 
 export interface SnapshotEntity {
@@ -27,79 +28,41 @@ export interface Snapshot {
   facts: SnapshotFact[];
 }
 
-export interface GraphNode {
+/** A node for the force-graph (the library adds x/y/vx/vy at runtime). */
+export interface GraphNodeData {
   id: string;
   name: string;
-  x: number;
-  y: number;
 }
 
-export interface GraphEdge {
+/** A directed link for the force-graph. */
+export interface GraphLinkData {
   id: string;
-  sourceId: string;
-  targetId: string;
+  source: string;
+  target: string;
   predicate: string;
-  /** Solid when true; dashed/greyed when false. */
+  /** Solid + arrowed when true; dashed/greyed when false. */
   current: boolean;
-  source: GraphNode;
-  target: GraphNode;
 }
 
-export interface GraphModel {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
+export interface GraphData {
+  nodes: GraphNodeData[];
+  links: GraphLinkData[];
 }
 
-export interface LayoutOptions {
-  width: number;
-  height: number;
-  /** Node circle radius from the center. */
-  radius: number;
-}
-
-const DEFAULT_LAYOUT: LayoutOptions = { width: 900, height: 600, radius: 230 };
-
-/**
- * Deterministic radial layout: entities sorted by name are placed evenly on a
- * circle. Deterministic positioning matters for the recorded demo — only the
- * edge styling changes during a Supersession, never the node positions, so the
- * grey-out is the single visible change.
- */
-export function toGraphModel(snapshot: Snapshot, layout: LayoutOptions = DEFAULT_LAYOUT): GraphModel {
-  const { width, height, radius } = layout;
-  const cx = width / 2;
-  const cy = height / 2;
-
-  const ordered = [...snapshot.entities].sort((a, b) => a.name.localeCompare(b.name));
-  const count = Math.max(ordered.length, 1);
-
-  const nodes: GraphNode[] = ordered.map((entity, i) => {
-    const angle = (2 * Math.PI * i) / count - Math.PI / 2;
-    return {
-      id: entity.id,
-      name: entity.name,
-      x: cx + radius * Math.cos(angle),
-      y: cy + radius * Math.sin(angle),
-    };
-  });
-
-  const nodeById = new Map(nodes.map((n) => [n.id, n]));
-
-  const edges: GraphEdge[] = [];
-  for (const fact of snapshot.facts) {
-    const source = nodeById.get(fact.subjectId);
-    const target = nodeById.get(fact.objectId);
-    if (!source || !target) continue; // orphan guard
-    edges.push({
-      id: fact.id,
-      sourceId: fact.subjectId,
-      targetId: fact.objectId,
-      predicate: fact.predicate,
-      current: fact.current, // straight from expired_at IS NULL — never from invalid_at
-      source,
-      target,
+/** Map a snapshot to force-graph data, dropping Facts whose endpoints are absent. */
+export function toGraphData(snapshot: Snapshot): GraphData {
+  const ids = new Set(snapshot.entities.map((e) => e.id));
+  const nodes: GraphNodeData[] = snapshot.entities.map((e) => ({ id: e.id, name: e.name }));
+  const links: GraphLinkData[] = [];
+  for (const f of snapshot.facts) {
+    if (!ids.has(f.subjectId) || !ids.has(f.objectId)) continue; // orphan guard
+    links.push({
+      id: f.id,
+      source: f.subjectId,
+      target: f.objectId,
+      predicate: f.predicate,
+      current: f.current, // straight from expired_at IS NULL — never from invalid_at
     });
   }
-
-  return { nodes, edges };
+  return { nodes, links };
 }

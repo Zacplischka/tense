@@ -40,6 +40,12 @@ export interface RememberSummary {
   sourceId: string;
   factsCreated: FactSummary[];
   factsSuperseded: FactSummary[];
+  /**
+   * Facts already Current and re-stated by this Source (ADR 0005). No new Fact
+   * is created; the Source is recorded as additional provenance. Distinguishes
+   * "we learned this again" from "this changed" (factsSuperseded).
+   */
+  factsReaffirmed: FactSummary[];
 }
 
 export async function remember(
@@ -56,13 +62,35 @@ export async function remember(
   const extracted = await extractor.extract(text, knownEntities);
 
   const source = await store.insertSource(text, sourceLabel);
-  const summary: RememberSummary = { sourceId: source.id, factsCreated: [], factsSuperseded: [] };
+  const summary: RememberSummary = {
+    sourceId: source.id,
+    factsCreated: [],
+    factsSuperseded: [],
+    factsReaffirmed: [],
+  };
 
   for (const fact of extracted.facts) {
     const subject = await resolveOrCreate(resolver, store, fact.subject);
     const object = await resolveOrCreate(resolver, store, fact.object);
 
-    const candidates = (await store.currentFactsFor(subject.id, fact.predicate)).map(toCandidateFact);
+    const currentFacts = await store.currentFactsFor(subject.id, fact.predicate);
+
+    // Reaffirmation (ADR 0005): this exact Fact (same subject -> predicate ->
+    // object) is already Current. Don't create a duplicate or supersede anything
+    // — just record this Source as additional provenance and move on.
+    const existing = currentFacts.find((c) => c.objectId === object.id);
+    if (existing) {
+      await store.addFactSource(existing.id, source.id);
+      summary.factsReaffirmed.push({
+        id: existing.id,
+        subject: subject.name,
+        predicate: fact.predicate,
+        object: object.name,
+      });
+      continue;
+    }
+
+    const candidates = currentFacts.map(toCandidateFact);
     const plan = resolveSupersession({
       newFact: { predicate: fact.predicate, validAt: fact.validAt },
       candidateFacts: candidates,
@@ -76,6 +104,10 @@ export async function remember(
       objectId: object.id,
       sourceId: source.id,
     });
+
+    // Record the origin Source in the provenance join too, so "reinforced N
+    // times" counts consistently for Facts created after this migration.
+    await store.addFactSource(inserted.id, source.id);
 
     summary.factsCreated.push({
       id: inserted.id,

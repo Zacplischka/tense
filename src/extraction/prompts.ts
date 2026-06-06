@@ -25,15 +25,20 @@ Return STRICT JSON (no prose, no markdown) with this exact shape:
 }
 
 Rules:
-- Entities are distinct real-world things (people, places, orgs, features). Use
-  the cleanest canonical name; reuse a known entity name when the text clearly
-  refers to it.
+- Entities are distinct things worth tracking: people, places, orgs, products,
+  features, AND tools, libraries, languages, frameworks, services, files,
+  components, concepts, and decisions. Use the cleanest canonical name; reuse a
+  known entity name when the text clearly refers to it.
 - A Fact is a directed relationship subject -> predicate -> object, where BOTH
-  subject and object are entities. Do not emit a Fact for an attribute that isn't
-  a relationship between two entities.
-- predicate must be a lowercase hyphenated slug (e.g. "reports-to", "lives-in",
-  "works-at", "knows", "contributed-to", "left"). Prefer the known predicates
-  listed below when they fit.
+  subject and object are entities. A relationship to another named thing IS a
+  Fact (e.g. "Tense uses pgvector" -> Tense -uses-> pgvector; "Zach prefers pnpm"
+  -> Zach -prefers-> pnpm). Only skip a bare single-entity attribute with no
+  second entity (e.g. "Tense is fast").
+- predicate must be a lowercase hyphenated slug. Prefer a known predicate (listed
+  below) when one fits; otherwise COIN a precise slug rather than dropping a
+  clearly-stated relationship. Common slugs: reports-to, lives-in, works-at,
+  knows, left, uses, prefers, depends-on, built-with, runs-on, stores-data-in,
+  implements, replaces, part-of, integrates-with, decided-on, working-on.
 - valid_at: an ISO-8601 date (YYYY-MM-DD) for when the fact became true in the
   world, ONLY if the text states or clearly implies it; otherwise null. Do not
   guess. Relative words like "now"/"currently" with no date => null.

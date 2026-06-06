@@ -7,6 +7,10 @@ dist/
 coverage/
 .claude/settings.local.json
 
+# Python bytecode cache (hooks)
+__pycache__/
+*.pyc
+
 # viewer (Next.js) build artifacts
 viewer/node_modules/
 viewer/.next/

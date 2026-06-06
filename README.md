@@ -137,7 +137,15 @@ cd viewer && pnpm install && pnpm dev   # http://localhost:3000
 ```
 
 Renders the graph from Postgres and animates Supersession: Current Facts solid,
-superseded Facts greyed/dashed, updating live as Facts change.
+superseded Facts greyed/dashed, updating live as Facts change. New Entities and
+Facts glow in on a stable layout (existing nodes never move), so you can watch the
+graph *grow*.
+
+The viewer is **read-mostly**: alongside the read path it exposes one local
+ingestion endpoint, `POST /api/remember`, behind a drop-text box — paste text and
+watch the graph react. The same endpoint is what the Claude Code session hook
+posts to (ADR 0004). Ingestion needs `OPENROUTER_API_KEY` (and `TENSE_DATABASE_URL`)
+in the viewer's environment; it reads the project-root `.env` by default.
 
 ## Models
 
@@ -156,7 +164,7 @@ src/extraction/    LLM extractor + static prompt assets (stub double for tests)
 src/contradiction/ LLM-judged contradiction (reuses the resolver's direction rule)
 src/retrieval/     hybrid recall (RRF + temporal filter) and history
 src/mcp/, server.ts  MCP stdio adapter and entry point
-viewer/            read-only Next.js viewer (the live grey-out)
+viewer/            read-mostly Next.js viewer (live grey-out + growth, drop-text ingestion)
 eval/              gold set, metrics, fair baseline, harness (pnpm eval)
 test/              logic unit tests + integration tests (real Postgres)
 docs/adr/          architecture decisions  ·  CONTEXT.md  domain glossary

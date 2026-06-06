@@ -4,7 +4,9 @@ import type { Snapshot } from "./graph-model";
 const DEFAULT_DATABASE_URL = "postgres://postgres:tense@localhost:5432/tense";
 
 let pool: pg.Pool | null = null;
-function getPool(): pg.Pool {
+/** The viewer's single Postgres pool — shared by the read snapshot and the
+ *  POST /api/remember ingestion route (ADR 0004). */
+export function getPool(): pg.Pool {
   if (!pool) {
     pool = new pg.Pool({
       connectionString: process.env.TENSE_DATABASE_URL ?? DEFAULT_DATABASE_URL,
@@ -24,7 +26,11 @@ export async function fetchSnapshot(): Promise<Snapshot> {
   const client = await getPool().connect();
   try {
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
-    const entities = await client.query("SELECT id, name FROM entities ORDER BY name");
+    // Creation order is the stable layout key (ADR slice 02): append-only, so an
+    // existing Entity's on-screen position never changes when a new one appears.
+    const entities = await client.query(
+      "SELECT id, name FROM entities ORDER BY created_at ASC, id ASC",
+    );
     const facts = await client.query(
       `SELECT id, subject_id, predicate, object_id,
               (expired_at IS NULL) AS current, valid_at, invalid_at

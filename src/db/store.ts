@@ -303,6 +303,28 @@ export class TemporalGraphStore {
     return rows[0]?.has === true;
   }
 
+  /**
+   * Record that a Source asserted a Fact (Reaffirmation, ADR 0005). Idempotent:
+   * re-linking the same (fact, source) pair is a no-op. Called for the origin
+   * Source when a Fact is first created and for every later Source that re-states
+   * an already-Current Fact.
+   */
+  async addFactSource(factId: string, sourceId: string): Promise<void> {
+    await this.pool.query(
+      "INSERT INTO fact_sources (fact_id, source_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+      [factId, sourceId],
+    );
+  }
+
+  /** How many distinct Sources have asserted a Fact ("reinforced N times"). */
+  async countFactSources(factId: string): Promise<number> {
+    const { rows } = await this.pool.query(
+      "SELECT count(*)::int AS n FROM fact_sources WHERE fact_id = $1",
+      [factId],
+    );
+    return (rows[0]?.n as number) ?? 0;
+  }
+
   async getEntity(id: string): Promise<Entity | null> {
     const { rows } = await this.pool.query(
       "SELECT id, name, normalized_name, created_at FROM entities WHERE id = $1",

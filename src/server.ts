@@ -2,11 +2,7 @@
 import "./env.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createPool } from "./db/pool.js";
-import { TemporalGraphStore } from "./db/store.js";
-import { LlmExtractor } from "./extraction/llm-extractor.js";
-import { EntityResolver } from "./resolution/entity-resolver.js";
-import { defaultPredicateRegistry } from "./supersession/registry.js";
-import { createProvider } from "./provider/openrouter.js";
+import { createRememberDeps } from "./remember-deps.js";
 import { createMcpServer } from "./mcp/server.js";
 
 /**
@@ -17,16 +13,7 @@ import { createMcpServer } from "./mcp/server.js";
  */
 async function main(): Promise<void> {
   const pool = createPool();
-  const provider = createProvider(); // validates OPENROUTER_API_KEY / models
-
-  const deps = {
-    store: new TemporalGraphStore(pool),
-    extractor: new LlmExtractor(provider),
-    resolver: new EntityResolver(pool),
-    registry: defaultPredicateRegistry(),
-    provider,
-    enableContradiction: true, // general cross-Predicate path (cardinality is always on)
-  };
+  const deps = createRememberDeps(pool); // validates OPENROUTER_API_KEY / models
 
   const server = createMcpServer(deps);
   const transport = new StdioServerTransport();

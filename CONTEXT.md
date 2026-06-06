@@ -7,7 +7,7 @@ A memory layer for AI agents that stores knowledge as a temporal graph: it track
 ## Language
 
 **Fact**:
-A directed, typed relationship between two Entities, expressed as subject → **Predicate** → object (e.g. _Zach → reports-to → Alice_). The only thing in the system that can be superseded. Each Fact carries its **valid time** (when it was true in the world) and its **transaction time** (when the system learned and retired it), and cites the **Source** it was extracted from.
+A directed, typed relationship between two Entities, expressed as subject → **Predicate** → object (e.g. _Zach → reports-to → Alice_). The only thing in the system that can be superseded. Each Fact carries its **valid time** (when it was true in the world) and its **transaction time** (when the system learned and retired it), and cites the **Source** it was first extracted from — plus any later Sources that **reaffirm** it.
 _Avoid_: edge, triple, statement, claim (use **Fact** consistently)
 
 **Entity**:
@@ -34,8 +34,12 @@ _Avoid_: overwrite, update, invalidate, expire, delete (these imply loss; the ol
 A relationship between two Facts that cannot both be true at the same time, where the newer one supersedes the older — e.g. _Zach → works-at → Acme_ contradicted by _Zach → left → Acme_. Detected by cardinality for single-valued Predicates, and by an LLM for open-ended or cross-Predicate cases. Strictly **temporal**: it is about a later Fact overriding an earlier one, never about two simultaneous Sources disagreeing (that — trust between competing Sources — is out of scope).
 _Avoid_: conflict, disagreement (reserve those for the deferred source-trust problem)
 
+**Reaffirmation**:
+The event of a later Source re-asserting a Fact that is already **Current**. Unlike a **Supersession**, nothing closes — the existing Fact is unchanged and stays one Fact; the new Source is simply recorded as additional provenance. Distinguishes "we learned this again" from "this changed." A re-statement of an already-Current Fact (same subject → Predicate → object) is a Reaffirmation, never a duplicate Fact.
+_Avoid_: duplicate, re-insert, update (no new Fact is created and nothing is overwritten)
+
 **Source**:
-A chunk of ingested text from which Facts are extracted, and to which every Fact traces back for provenance ("which Source said this?"). May be a file, a chat message, a transcript — anything textual.
+A chunk of ingested text from which Facts are extracted, and to which a Fact traces back for provenance ("which Source said this?") — its origin Source, plus any later Sources that **reaffirm** the same Fact. May be a file, a chat message, a transcript — anything textual.
 _Avoid_: document, doc, episode, input
 
 **Extraction**:
