@@ -1291,3 +1291,31 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   established Graph pattern (iter 13). → pass.
 - **Commit**: d9ba64c
 - **Saturation**: UX active (V=3) — no flag change.
+
+### Iteration 54 · — · mode=scout
+- **Outcome**: No code change. Diversify blocked UX(53)/docs(52); functionality
+  (steering-primary, open) is saturated — verified this turn: the empty-query browse
+  orders newest-first (`created_at DESC` / `valid_at DESC`, sensible), `rrf.ts` is
+  tested, 8 tools complete, all hidden signals surfaced (reason, learnedAt/retiredAt,
+  cardinality, predicate-shape). Supporting dims have thorough coverage / deferred-
+  risky items. No candidate cleared V≥3 without forcing or a real cost. SCOUT >
+  forcing a borderline change (last scout was iter 35 — not over-frequent).
+- **Backlog (discovered this turn)**:
+  - [functionality] Enumerate the citing Sources per Fact (which Sources reaffirm
+    it, not just the count) — completes provenance. BUT bloats every recall/history
+    result + RecalledFact ripple + README churn; better as an opt-in recall flag.
+    V2-3 (cost vs value tradeoff — don't force).
+  - [functionality] `as_of` on `stats` — point-in-time graph counts (entities/facts/
+    predicates as of a past instant). V2 (agents rarely need historical stats).
+  - [robustness] Embedding-dimension guard: a non-1536-dim `TENSE_EMBEDDING_MODEL`
+    makes `setFactEmbedding` fail — and it's swallowed (best-effort), so semantic
+    recall SILENTLY degrades with no error. Validate dim at startup / surface it. V2-3.
+  - [a11y] aria-live on the Entity-index "X of N" filter count, so screen-reader
+    users get search-as-you-type result feedback. V2.
+  - [tests] Lock the empty-query browse newest-first ordering (created_at DESC). V2.
+- **Files**: none (scout) — ledger only.
+- **Verification**: n/a (no code change); tree green at start (192 tests, viewer ✓).
+- **Commit**: dc0ca5b (ledger only)
+- **Saturation**: functionality nearing saturation (clean V≥3 wins exhausted —
+  future functionality turns likely need the GENERATIVE SWITCH or an opt-in knob);
+  no flag forced. Other dims unchanged.
