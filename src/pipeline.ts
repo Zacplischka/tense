@@ -4,8 +4,8 @@ import type { Extractor } from "./extraction/types.js";
 import type { EntityResolver } from "./resolution/entity-resolver.js";
 import type { PredicateRegistry } from "./supersession/registry.js";
 import type { ProviderClient } from "./provider/types.js";
-import { resolveSupersession } from "./supersession/resolver.js";
-import { applySupersessionPlan, toCandidateFact } from "./supersession/apply.js";
+import { applySupersessionPlan } from "./supersession/apply.js";
+import { decideFact } from "./supersession/decide.js";
 import { resolveContradictions } from "./contradiction/contradiction.js";
 
 /**
@@ -129,14 +129,23 @@ export async function remember(
 
     const currentFacts = await store.currentFactsFor(subject.id, fact.predicate);
 
-    // Reaffirmation (ADR 0005): this exact Fact (same subject -> predicate ->
-    // object) is already Current. Don't create a duplicate or supersede anything
-    // — just record this Source as additional provenance and move on.
-    const existing = currentFacts.find((c) => c.objectId === object.id);
-    if (existing) {
-      await store.addFactSource(existing.id, source.id);
+    // The per-Fact decision (reaffirm vs write-with-supersessions) is shared with
+    // `preview` via decideFact, so a dry-run predicts this exact outcome.
+    const decision = decideFact({
+      currentFacts,
+      objectId: object.id,
+      predicate: fact.predicate,
+      validAt: fact.validAt,
+      registry,
+      now: clock(),
+    });
+
+    // Reaffirmation (ADR 0005): this exact Fact is already Current — don't create a
+    // duplicate or supersede anything; just record this Source as added provenance.
+    if (decision.kind === "reaffirm") {
+      await store.addFactSource(decision.factId, source.id);
       summary.factsReaffirmed.push({
-        id: existing.id,
+        id: decision.factId,
         subject: subject.name,
         predicate: fact.predicate,
         object: object.name,
@@ -144,15 +153,7 @@ export async function remember(
       continue;
     }
 
-    const candidates = currentFacts.map(toCandidateFact);
-    const plan = resolveSupersession({
-      newFact: { predicate: fact.predicate, validAt: fact.validAt },
-      candidateFacts: candidates,
-      registry,
-      now: clock(),
-    });
-
-    const { closed, inserted } = await applySupersessionPlan(store, plan, {
+    const { closed, inserted } = await applySupersessionPlan(store, decision.plan, {
       subjectId: subject.id,
       predicate: fact.predicate,
       objectId: object.id,

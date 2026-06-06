@@ -1,6 +1,5 @@
 import type { RememberDeps, EntityResolution } from "./pipeline.js";
-import { resolveSupersession } from "./supersession/resolver.js";
-import { toCandidateFact } from "./supersession/apply.js";
+import { decideFact } from "./supersession/decide.js";
 
 /**
  * Dry-run of {@link remember}: report what ingesting `text` WOULD do — Facts it
@@ -85,21 +84,22 @@ export async function previewRemember(deps: RememberDeps, text: string): Promise
     // A brand-new subject has no current Facts to supersede or reaffirm.
     const currentFacts = subject.id ? await store.currentFactsFor(subject.id, fact.predicate) : [];
 
-    // Reaffirmation: this exact Fact (same object) is already Current (ADR 0005).
-    const existing = object.id ? currentFacts.find((c) => c.objectId === object.id) : undefined;
-    if (existing) {
+    // SAME decision remember makes — so this preview predicts it (ADR 0002/0005).
+    const decision = decideFact({
+      currentFacts,
+      objectId: object.id,
+      predicate: fact.predicate,
+      validAt: fact.validAt,
+      registry,
+      now: now(),
+    });
+    if (decision.kind === "reaffirm") {
       preview.factsToReaffirm.push({ subject: subject.name, predicate: fact.predicate, object: object.name });
       continue;
     }
 
-    const plan = resolveSupersession({
-      newFact: { predicate: fact.predicate, validAt: fact.validAt },
-      candidateFacts: currentFacts.map(toCandidateFact),
-      registry,
-      now: now(),
-    });
     preview.factsToCreate.push({ subject: subject.name, predicate: fact.predicate, object: object.name });
-    for (const close of plan.toClose) {
+    for (const close of decision.plan.toClose) {
       const closed = currentFacts.find((f) => f.id === close.factId);
       const closedObject = closed ? await store.getEntity(closed.objectId) : null;
       preview.factsToSupersede.push({

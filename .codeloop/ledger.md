@@ -118,11 +118,14 @@ wells are genuinely drawn down. No candidate cleared the net-positive bar withou
 either a 4th-straight functionality turn, a risky resolver rewrite, or V≤2 polish
 — so iter 20 SCOUTed (no code change). Concrete future opportunities, in rough
 priority:_
-- [architecture] Refactor `remember` into `plan()` + `apply()` so `remember =
-  apply(plan())` and `preview = plan()` — removes preview/remember orchestration
-  duplication (today they share only the pure resolver) and makes intra-batch
-  preview accurate. Touches the demo-critical path; full suite is the guard. (V≥3
-  candidate for a non-functionality turn — best next exploit.)
+- ~~[architecture] de-dup preview/remember decision~~ — PARTIALLY DONE (iter 21):
+  extracted the shared per-Fact `decideFact()` (reaffirm vs write-with-supersession);
+  both remember and preview call it, so preview predicts remember structurally.
+  NOT done (and shelved as unsafe): the full `remember = apply(plan())` with an
+  up-front read-only plan — remember is INCREMENTAL (each Fact's decision sees the
+  live graph after prior Facts in the same batch), so an up-front plan would
+  regress intra-batch supersession. Keep remember incremental; decideFact was the
+  safe, valuable core.
 - [perf] Trigram GIN index on `entities.normalized_name` + an index-accelerated
   resolver. CAUTION: the resolver's 0.4 threshold vs the `%` operator's
   GUC-controlled threshold — do NOT couple correctness to `pg_trgm.similarity_
@@ -519,3 +522,25 @@ priority:_
 - **Verification**: n/a (no code change); tree was green at start (lint ✓, 159 tests).
 - **Commit**: efe1955 (ledger only)
 - **Saturation**: fresh survey cleared all flags (already 0).
+
+### Iteration 21 · architecture · mode=exploit
+- **Change**: Extract the shared per-Fact decision into `src/supersession/decide.ts`
+  (`decideFact` → `{kind:"reaffirm",factId} | {kind:"write",plan}`), wrapping the
+  reaffirmation check + pure `resolveSupersession`. `remember` and `preview` now
+  BOTH call it, so a dry-run predicts ingest by construction (same fn), not by
+  parallel code that can drift. remember stays incremental (writes per Fact), so
+  intra-batch supersession is unchanged.
+- **Survey note**: the backlog's `remember = apply(plan())` (up-front read-only
+  plan) was inspected and SHELVED as unsafe — it would regress intra-batch
+  supersession (remember decides each Fact against the live, mid-batch graph).
+  decideFact is the safe core of that item.
+- **Net-positive**: improves architecture/clarity (one tested decision; structural
+  preview↔remember agreement); protects correctness (remember byte-identical &
+  incremental; guarded by supersession + reaffirmation + preview-predicts-remember
+  + eval tests). V=3 C=4 S=4.
+- **Files**: src/supersession/decide.ts (new), src/pipeline.ts, src/preview.ts,
+  test/decide.test.ts (new).
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (36 files / 163 tests; +1 file, +4 tests vs iter 19's 159).
+- **Commit**: 91141d3
+- **Saturation**: none changed (architecture produced V=3).
