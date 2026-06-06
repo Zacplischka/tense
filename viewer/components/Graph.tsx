@@ -62,6 +62,12 @@ export interface GraphProps {
   selectedId?: string | null;
   /** Click a node to select it; click the background to clear (null). */
   onSelect?: (id: string | null) => void;
+  /**
+   * Entity ids matching the active filter. When set, non-matching nodes/edges are
+   * dimmed so the filter reads as a "find in graph", not just a chip-list narrow.
+   * Null/undefined = no filter (nothing dimmed on this account).
+   */
+  matchedIds?: Set<string> | null;
 }
 
 const NODE_R = 5; // graph-units; rendered radius scales with zoom
@@ -76,7 +82,7 @@ function endId(end: string | FNode): string {
  * and arrowed, superseded Facts are dashed and greyed, and just-arrived Entities
  * glow green. Labels fade in as you zoom.
  */
-export default function Graph({ data, width, height, highlightedIds, selectedId, onSelect }: GraphProps) {
+export default function Graph({ data, width, height, highlightedIds, selectedId, onSelect, matchedIds }: GraphProps) {
   const fgRef = useRef<any>(null);
   const hoverIdRef = useRef<string | null>(null);
   const neighborsRef = useRef<Set<string>>(new Set());
@@ -117,10 +123,11 @@ export default function Graph({ data, width, height, highlightedIds, selectedId,
     prevNodeCount.current = data.nodes.length;
   }, [data]);
 
-  // Repaint when the glow set or the selection changes (sim may already be cool).
+  // Repaint when the glow set, selection, or filter match-set changes (the sim may
+  // already be cool, so a prop change alone wouldn't otherwise repaint).
   useEffect(() => {
     fgRef.current?.refresh?.();
-  }, [highlightedIds, selectedId]);
+  }, [highlightedIds, selectedId, matchedIds]);
 
   // Bring the selected Entity into view: selecting from the index/filter or walking
   // the detail panel (which can target an off-screen node) should pan the camera to
@@ -134,7 +141,11 @@ export default function Graph({ data, width, height, highlightedIds, selectedId,
     }
   }, [selectedId]);
 
+  // A node is dimmed if the active filter excludes it, OR (on hover) it isn't the
+  // hovered node or a neighbor. Filter dimming is persistent; hover dimming is
+  // transient — either fades a node back.
   const dimmed = (id: string): boolean => {
+    if (matchedIds && !matchedIds.has(id)) return true;
     const hov = hoverIdRef.current;
     if (!hov) return false;
     return id !== hov && !neighborsRef.current.has(id);
@@ -211,8 +222,11 @@ export default function Graph({ data, width, height, highlightedIds, selectedId,
         ctx.fill();
       }}
       linkColor={(l: FLink) => {
-        const faded = hoverIdRef.current && !(neighborsRef.current.has(endId(l.source)) || neighborsRef.current.has(endId(l.target)) || endId(l.source) === hoverIdRef.current || endId(l.target) === hoverIdRef.current);
-        if (faded) return "rgba(148,163,184,0.12)";
+        // Filter: fade any edge not touching a matched node, so the filtered
+        // sub-graph stands out (mirrors the node dimming).
+        const filterFaded = matchedIds && !(matchedIds.has(endId(l.source)) || matchedIds.has(endId(l.target)));
+        const hoverFaded = hoverIdRef.current && !(neighborsRef.current.has(endId(l.source)) || neighborsRef.current.has(endId(l.target)) || endId(l.source) === hoverIdRef.current || endId(l.target) === hoverIdRef.current);
+        if (filterFaded || hoverFaded) return "rgba(148,163,184,0.12)";
         return l.current ? "#64748b" : "#cbd5e1";
       }}
       linkWidth={(l: FLink) => factLinkWidth(l.current, l.reinforcedBy ?? 1)}

@@ -157,6 +157,19 @@ export default function Page() {
     .filter((e) => !entityQuery || e.name.toLowerCase().includes(entityQuery))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  // When the filter is active, the matching Entity ids drive graph dimming so the
+  // filter is a visual "find in graph", not just a chip-list narrow. Memoized on a
+  // stable signature so it only changes with the query/graph (not every render).
+  const matchedIds = useMemo(
+    () =>
+      entityQuery
+        ? new Set(
+            snapshot.entities.filter((e) => e.name.toLowerCase().includes(entityQuery)).map((e) => e.id),
+          )
+        : null,
+    [entityQuery, snapshot.entities],
+  );
+
   // --- growth glow: green-highlight genuinely new Entities -----------------
   useEffect(() => {
     if (!initialized.current) {
@@ -330,6 +343,7 @@ export default function Page() {
           width={graphWidth}
           height={GRAPH_HEIGHT}
           highlightedIds={highlightedIds}
+          matchedIds={matchedIds}
           selectedId={selectedId}
           onSelect={(id) => {
             triggerRef.current = null; // mouse path: no chip to restore focus to

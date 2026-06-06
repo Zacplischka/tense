@@ -1502,3 +1502,29 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   `npm test` ✓ (40 files / 198 tests, +1). Viewer gate not run (no viewer change). → pass.
 - **Commit**: 4f06e10
 - **Saturation**: new-capability/functionality active (V=3) — no flag change.
+
+### Iteration 62 · UX (viewer) · mode=exploit
+- **Change**: the entity filter now dims the GRAPH, not just the chip list. Typing a
+  query fades non-matching nodes and the edges that don't touch a match, so the
+  iter-46 filter becomes a visual "find in graph". Reuses the existing dim pattern
+  (the same `globalAlpha 0.12` / faded-link path as hover), extended with a
+  persistent filter match-set.
+- **Net-positive**: improves UX (locate filtered Entities in the visualization, not
+  only the list — connects the filter to the main canvas). Protects the hover-dim
+  behavior (filter + hover both just fade a node; combined cleanly), selection,
+  and graph rendering. V=3 C=4 S=4.
+- **Why UX**: diversify blocks the last two dims (functionality 61, scout 60 has
+  none); UX is steering-primary and open (last 58). Chosen over a 2nd-near scout
+  because it's a genuine, clean V3 that completes iter 46.
+- **Design / blast radius**: new optional `Graph.matchedIds` prop; `dimmed()` and
+  `linkColor` gain a filter-fade clause; the repaint effect gets `matchedIds` in
+  deps. page.tsx derives a MEMOIZED match-set (stable on [entityQuery, entities] so
+  it doesn't repaint every render). Additive; null when no filter (no behavior change).
+- **Files**: viewer/components/Graph.tsx (matchedIds prop + dim/link fade + repaint
+  dep), viewer/app/page.tsx (memoized matchedIds + passed to Graph).
+- **Verification**: `npm run check:viewer` → EXIT=0 (tsc --noEmit ✓, next build ✓).
+  Viewer-only (Graph.tsx/page.tsx not imported by the main suite); canvas dimming has
+  no component-test harness, so verified via typecheck + build per the Graph pattern
+  (13/53). The match-set reuses the already-tested filter predicate. → pass.
+- **Commit**: 6cdc56d
+- **Saturation**: UX active (V=3) — no flag change.
