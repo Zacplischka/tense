@@ -104,6 +104,9 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - ~~[functionality] MCP tool annotations~~ — DONE (iter 18): readOnlyHint on the 5
   read tools; remember readOnlyHint:false + destructiveHint:false (advertises the
   never-deletes invariant). Standards-based agent-UX metadata.
+- ~~[functionality] `preview` (dry-run remember)~~ — DONE (iter 19): read-only
+  `previewRemember()` + MCP tool; reuses the pure `resolveSupersession` so it
+  agrees with `remember`. Reports would-create/supersede/reaffirm + entitiesResolved.
 - [functionality] (smaller, remaining) `reinforcedBy`-sorted recall / a `reinforcedBy`
   tiebreak in RRF — but ranking changes touch the eval headline; treat with care.
 
@@ -452,3 +455,26 @@ scrubber. After this, remaining items really are low-value; SCOUT is likely next
   `npm test` ✓ (34 files / 156 tests; +1 test vs iter 17).
 - **Commit**: af79996
 - **Saturation**: none changed (functionality produced V=3).
+
+### Iteration 19 · new-capability (functionality) · mode=generative (user-steered)
+- **Change**: Add `preview` — a dry-run of `remember`. `previewRemember()` (new
+  src/preview.ts) + a read-only MCP `preview` tool report what ingesting text WOULD
+  do (factsToCreate/Supersede/Reaffirm + entitiesResolved) WITHOUT writing. Reuses
+  the SAME pieces remember uses — extractor, read-only `resolver.resolve`, and the
+  PURE `resolveSupersession` — so preview and remember agree by construction; zero
+  change to the write path. Documented limitation: simulates against current graph
+  state, not intra-batch effects (covers the deterministic cardinality path).
+- **Net-positive**: improves functionality + agent-UX (preview a Source's side
+  effects — incl. which Facts it would retire — before committing to memory);
+  protects remember/correctness (additive, read-only; shared pure decision logic;
+  test proves graph unchanged after preview AND that preview predicts remember).
+  V=4 C=4 S=4 (exceptional → clears diversify after two functionality turns).
+- **Survey note**: marginal items (viewer stats-header / error polish, V=2) stay
+  below the bar and `reinforcedBy`-ranking risks the eval; preview was the one
+  genuine V≥3 capability left, so generative rather than SCOUT.
+- **Files**: src/preview.ts (new), src/mcp/server.ts, test/preview.integration.test.ts
+  (new), test/mcp-adapter.integration.test.ts (tool-list + annotations), README.md.
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (35 files / 159 tests; +1 file, +3 tests vs iter 18).
+- **Commit**: fda0a28
+- **Saturation**: none changed (functionality produced V=4).

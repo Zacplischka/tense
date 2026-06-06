@@ -44,12 +44,13 @@ afterAll(async () => {
 });
 
 describe("MCP adapter (real client <-> server, provider replayed)", () => {
-  it("lists remember, recall, history, stats, entities, and sources", async () => {
+  it("lists remember, preview, recall, history, stats, entities, and sources", async () => {
     const client = await connect(depsWith(new StubExtractor()));
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       "entities",
       "history",
+      "preview",
       "recall",
       "remember",
       "sources",
@@ -61,7 +62,7 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     const client = await connect(depsWith(new StubExtractor()));
     const { tools } = await client.listTools();
     const byName = Object.fromEntries(tools.map((t) => [t.name, t.annotations]));
-    for (const ro of ["recall", "history", "stats", "entities", "sources"]) {
+    for (const ro of ["preview", "recall", "history", "stats", "entities", "sources"]) {
       expect(byName[ro]?.readOnlyHint).toBe(true);
     }
     // remember writes, but Tense never deletes — advertise that explicitly.

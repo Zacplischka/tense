@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { remember, type RememberDeps } from "../pipeline.js";
+import { previewRemember } from "../preview.js";
 import { recall } from "../retrieval/recall.js";
 import { history } from "../retrieval/history.js";
 
@@ -47,6 +48,31 @@ export function createMcpServer(deps: RememberDeps): McpServer {
           content: [{ type: "text", text: `remember failed: ${message}` }],
           isError: true,
         };
+      }
+    },
+  );
+
+  server.registerTool(
+    "preview",
+    {
+      title: "Preview",
+      description:
+        "Dry-run of `remember`: report what ingesting the text WOULD do — Facts it " +
+        "would create / supersede / reaffirm, and how each name resolves — WITHOUT " +
+        "writing anything. Preview a Source's side effects (and the supersessions it " +
+        "triggers) before committing it to memory.",
+      inputSchema: {
+        text: z.string().min(1).describe("The text to preview ingesting."),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async ({ text }) => {
+      try {
+        const plan = await previewRemember(deps, text);
+        return { content: [{ type: "text", text: JSON.stringify(plan, null, 2) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text", text: `preview failed: ${message}` }], isError: true };
       }
     },
   );

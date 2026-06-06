@@ -127,6 +127,7 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 | Tool | Signature | Returns |
 |---|---|---|
 | `remember` | `(text, source?)` | Facts created / superseded / reaffirmed after extraction + supersession, plus how each name resolved (`entitiesResolved`: new / exact / fuzzy) |
+| `preview` | `(text)` | Dry-run of `remember` — what it *would* create / supersede / reaffirm (and how names resolve), writing nothing |
 | `recall` | `(query, as_of?, predicate?, limit?, min_reinforced?)` | Ranked Facts — Current by default, or valid-at-`as_of`; optionally scoped to a Predicate, capped, or filtered to Facts confirmed by ≥`min_reinforced` Sources — each with Source, interval, and `reinforcedBy` |
 | `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
 | `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown |
