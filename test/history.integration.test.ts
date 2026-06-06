@@ -38,6 +38,10 @@ describe("history (supersession chain)", () => {
     // Each carries its Source.
     expect(chain[0]?.source.label).toBe("q1");
     expect(chain[1]?.source.label).toBe("q2");
+    // Transaction-time retirement: the closed Alice Fact has a retiredAt; the
+    // Current Bob Fact does not — so the chain shows WHEN each link was retired.
+    expect(chain[0]?.retiredAt).toBeInstanceOf(Date);
+    expect(chain[1]?.retiredAt).toBeNull();
   });
 
   it("narrows to a single Predicate when given one", async () => {

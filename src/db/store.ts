@@ -551,7 +551,7 @@ export class TemporalGraphStore {
    * falling back to transaction time when valid_at is null, with transaction time
    * as the tiebreak — so a closed Fact precedes the Current one that replaced it.
    */
-  async history(subjectId: string, predicate?: string): Promise<RecalledFact[]> {
+  async history(subjectId: string, predicate?: string): Promise<FactChange[]> {
     const params: unknown[] = [subjectId];
     let predicateClause = "";
     if (predicate) {
@@ -564,7 +564,10 @@ export class TemporalGraphStore {
        ORDER BY COALESCE(f.valid_at, f.created_at) ASC, f.created_at ASC`,
       params,
     );
-    return rows.map(mapRecalledRow);
+    // FactChange = the recall row plus `retiredAt` (expired_at): the chain is mostly
+    // retired Facts, so it carries BOTH transaction-time stamps (learnedAt from the
+    // base row, retiredAt here) — the full bi-temporal story per link.
+    return rows.map((r) => ({ ...mapRecalledRow(r), retiredAt: (r.expired_at as Date | null) ?? null }));
   }
 
   /** All Facts (Current + superseded), with names + Source — for the eval harness. */

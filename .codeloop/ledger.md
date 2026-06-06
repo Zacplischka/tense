@@ -1078,3 +1078,32 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   per the established viewer-a11y pattern (iters 16/27/34). → pass.
 - **Commit**: cd8a88c
 - **Saturation**: accessibility active (V=3) — no flag change.
+
+### Iteration 45 · new-capability (functionality) · mode=exploit (fresh survey)
+- **Change**: `history` (the supersession "show your work" chain) now returns
+  `FactChange[]` instead of `RecalledFact[]`, so each link carries `retiredAt` (the
+  transaction time the Fact was closed). The chain is mostly retired Facts, so it
+  now tells the full bi-temporal story per link — valid interval + `learnedAt` +
+  `retiredAt` + `current`. Reuses the EXISTING `FactChange` type (= RecalledFact +
+  retiredAt), so recall and the README recall examples are untouched.
+- **Net-positive**: improves functionality (completes the transaction-time axis on
+  the signature chain view). Protects recall (unchanged), correctness, the demo.
+  V=3 C=4 S=4. COMPLETES the bi-temporal surfacing arc: recall has learnedAt (39),
+  viewer shows learnedAt (41), changes has both (since bootstrap), history now has
+  both — every query tool exposes the full transaction-time axis. No more timestamp
+  slicing needed.
+- **Fresh survey**: re-read recall.ts (clean filter-then-fuse RRF) and
+  entity-resolver.ts (clean exact→fuzzy→short-name guard) away from the recent
+  store/viewer cluster — both mature; history's missing retiredAt was the clearest
+  remaining functionality gap. Saturation flags cleared (all already 0).
+- **Why functionality**: diversify blocks the last two dims (a11y 44, tests 43);
+  functionality is steering-primary and open (last 42).
+- **Files**: src/db/store.ts (history → FactChange[] + retiredAt map),
+  src/retrieval/history.ts (return type + doc), test/history.integration.test.ts
+  (retiredAt assertion: closed Fact set, Current null), README.md (history step-5
+  note — no longer "same shape as recall"; tools-table history row).
+- **Verification**: `npm run check` → EXIT=0 (40 files / 186 tests; viewer
+  typecheck + build ✓). → pass.
+- **Commit**: ed3a0ce
+- **Saturation**: ALL flags cleared (fresh survey, iter 45) — all already 0;
+  new-capability active (V=3). Codebase remains mature/clean.

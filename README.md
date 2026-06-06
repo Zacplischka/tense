@@ -130,7 +130,7 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 | `remember` | `(text, source?)` | Facts created / superseded / reaffirmed after extraction + supersession (each superseded Fact tagged `reason`: `cardinality` / `contradiction`), plus how each name resolved (`entitiesResolved`: new / exact / fuzzy) |
 | `preview` | `(text)` | Dry-run of `remember` — what it *would* create / supersede / reaffirm (and how names resolve), writing nothing |
 | `recall` | `(query, as_of?, predicate?, limit?, min_reinforced?)` | Ranked Facts — Current by default, or valid-at-`as_of`; optionally scoped to a Predicate, capped, or filtered to Facts confirmed by ≥`min_reinforced` Sources — each with Source, validity interval, `reinforcedBy`, and `learnedAt` (transaction time) |
-| `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
+| `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological — each Fact with its valid interval, `learnedAt`, and `retiredAt` (when the system closed it) |
 | `changes` | `(since, limit?)` | Transaction-time change feed — Facts learned or retired since a date (incremental sync), each with `learnedAt`/`retiredAt` |
 | `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown — each with its `cardinality` (`single` supersedes / `multi` accumulates) |
 | `entities` | `(query?, limit?)` | List/search Entities, each with its Current-Fact count (degree), most-connected first |
@@ -200,7 +200,7 @@ entered memory.
    "reinforcedBy": 1 }]
 ```
 
-**5. `history`** — `entity: "Zach"`, `predicate: "reports-to"` returns the whole chain chronologically: the closed Alice Fact, then the Current Bob Fact (same shape as the recall rows above).
+**5. `history`** — `entity: "Zach"`, `predicate: "reports-to"` returns the whole chain chronologically: the closed Alice Fact, then the Current Bob Fact — the recall row shape **plus** `retiredAt` (the transaction time each Fact was closed; `null` for the Current one), so the chain shows both *when each was true* and *when it was retired*.
 
 **6. `stats`** — the graph at a glance:
 
