@@ -87,8 +87,9 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - [UX] **Viewer** (`viewer/`, Next.js). DONE: rich Fact hover tooltip (iter 9);
   node-click detail panel (iter 11); reinforcedBy → link width (iter 13);
   point-in-time as-of scrubber (iter 15, via pure `snapshotAsOf`) — the headline
-  bi-temporal capability made visual. Remaining (lower value): a header summary
-  using `stats`; error-state polish (error only shows in the header today).
+  bi-temporal capability made visual; accessibility pass (iter 16: textarea label,
+  aria-live status, graph role=img+label, panel landmark). Remaining (lower value):
+  a header summary using `stats`; error-state polish (error only shows in header).
 - ~~[functionality] Expose `limit` + `predicate` on `recall`~~ — DONE (iter 10):
   threaded through recall() + the 3 store rankers + the MCP tool; predicate
   normalized to slug.
@@ -391,3 +392,22 @@ scrubber. After this, remaining items really are low-value; SCOUT is likely next
   +1 file, +6 tests vs iter 14).
 - **Commit**: f28b81f
 - **Saturation**: cleared by fresh survey (all 0); UX produced V=4.
+
+### Iteration 16 · accessibility · mode=explore (user-steered)
+- **Change**: Viewer accessibility pass (explore: a11y was a never-touched
+  dimension; also UX-aligned per the steer). Additive ARIA only: the ingest
+  `<textarea>` gets an `aria-label` (it had only a placeholder); the status message
+  becomes a persistent `role="status" aria-live="polite"` region so screen readers
+  announce ingest results/errors; the `<canvas>` graph wrapper gets `role="img"` +
+  a summarizing `aria-label` (entity/current/superseded counts, or "as of <date>");
+  the entity detail panel `<aside>` gets an `aria-label`. No logic/behavior change.
+- **Net-positive**: improves accessibility (real defects: unlabeled input,
+  unannounced status, opaque canvas); protects everything else (additive markup;
+  no behavior, no API, no logic change). V=3 C=5 S=5.
+- **Files**: viewer/app/page.tsx.
+- **Verification**: viewer `npm run typecheck` ✓ · viewer `npm run build` ✓ · main
+  `npm run lint` ✓ · `npm test` ✓ (33 files / 151 tests, unchanged — page.tsx is
+  not exercised by the main suite). No automated a11y gate exists; change is
+  additive ARIA, verified by build + review.
+- **Commit**: e080525
+- **Saturation**: none changed (accessibility produced V=3).

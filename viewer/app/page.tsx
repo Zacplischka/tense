@@ -223,6 +223,7 @@ export default function Page() {
           onKeyDown={(e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submit();
           }}
+          aria-label="Text to remember"
           placeholder="Drop text here — e.g. 'Zach now reports to Bob.' — then Remember (⌘/Ctrl+Enter)."
           rows={3}
           style={{
@@ -254,14 +255,27 @@ export default function Page() {
           >
             {status === "working" ? "Extracting…" : "Remember"}
           </button>
-          {message && (
-            <span style={{ fontSize: 13, color: status === "error" ? "#dc2626" : "#16a34a" }}>{message}</span>
-          )}
+          {/* Persistent live region so assistive tech announces ingest results/errors. */}
+          <span
+            role="status"
+            aria-live="polite"
+            style={{ fontSize: 13, color: status === "error" ? "#dc2626" : "#16a34a" }}
+          >
+            {message ?? ""}
+          </span>
         </div>
       </section>
 
       <div
         ref={wrapRef}
+        role="img"
+        aria-label={
+          graphData.nodes.length === 0
+            ? "Knowledge graph, empty"
+            : `Knowledge graph: ${graphData.nodes.length} entities, ${currentCount} ${
+                isAsOf ? `facts valid as of ${asOf}` : "current facts"
+              }${isAsOf ? "" : `, ${supersededCount} superseded`}`
+        }
         style={{
           position: "relative",
           height: GRAPH_HEIGHT,
@@ -286,6 +300,7 @@ export default function Page() {
         )}
         {selectedEntity && (
           <aside
+            aria-label={`Facts for ${selectedEntity.name}`}
             style={{
               position: "absolute",
               top: 0,
