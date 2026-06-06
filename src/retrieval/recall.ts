@@ -63,8 +63,14 @@ export async function recall(
     try {
       const [embedding] = await provider.embed([q]);
       if (embedding) semantic = await store.rankBySemantic(embedding, asOf, candidateLimit, predicate, minReinforced);
-    } catch {
-      // semantic is best-effort; keyword + temporal filter still answer the query
+    } catch (err) {
+      // Best-effort: keyword + temporal filter still answer the query. Warn (stderr,
+      // never stdout/MCP) so a failing embedding provider doesn't silently drop the
+      // semantic ranker on every recall without anyone noticing.
+      console.error(
+        "[tense] query embedding failed; falling back to keyword-only recall:",
+        err instanceof Error ? err.message : err,
+      );
     }
   }
 

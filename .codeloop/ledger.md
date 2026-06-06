@@ -1319,3 +1319,32 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Saturation**: functionality nearing saturation (clean V≥3 wins exhausted —
   future functionality turns likely need the GENERATIVE SWITCH or an opt-in knob);
   no flag forced. Other dims unchanged.
+
+### Iteration 55 · correctness/robustness · mode=exploit (fresh survey)
+- **Change**: embedding failures are now logged to stderr (matching the existing
+  `[tense]` convention in server.ts) at both swallow sites — `remember` (Fact
+  stored without a vector) and `recall` (falls back to keyword). Previously both
+  were silent `catch {}`, so a misconfigured/down embedding provider made semantic
+  recall SILENTLY degrade with zero operational signal. stderr only — never
+  stdout, which is the MCP protocol channel.
+- **Net-positive**: improves correctness/robustness (observability — a silent
+  core-feature degradation becomes visible). Protects ingestion/recall behavior
+  (still best-effort; Fact still stored, recall still falls back to keyword) and
+  the MCP stdout protocol. V=3 C=4 S=4. Synergy with iter-50 retry: only
+  retry-exhausted (persistent) failures log, so transient blips don't spam.
+- **Fresh survey**: checked migrations (indexes reasonable: entities unique+trgm,
+  facts current/subject-predicate/source, fact_sources), the logging convention
+  (server.ts uses `console.error("[tense] …")`), resolver/apply (mature, tested).
+  The silent embedding swallow was the clearest robustness gap. Saturation cleared.
+- **Supersedes backlog #3** (iter-54 "embedding-dim guard"): surfacing ALL embed
+  failures is simpler + broader than a dim-specific probe (dim mismatch is just one
+  cause; also covers bad key, provider-down, retry-exhausted rate limits).
+- **Files**: src/pipeline.ts + src/retrieval/recall.ts (catch (err) + stderr warn),
+  test/pipeline.integration.test.ts (+1: ingests-but-warns on embed failure, via a
+  console.error spy + a throwing-embed provider).
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (40 files / 193 tests, +1; no stray warnings — spy-mocked). Viewer
+  gate not run (no viewer change). → pass.
+- **Commit**: 79a9c10
+- **Saturation**: ALL flags cleared (fresh survey, iter 55) — all already 0;
+  correctness/robustness active (V=3). Codebase remains mature/clean.

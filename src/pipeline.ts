@@ -199,8 +199,14 @@ export async function remember(
       try {
         const [embedding] = await provider.embed([`${subject.name} ${fact.predicate} ${object.name}`]);
         if (embedding) await store.setFactEmbedding(inserted.id, embedding);
-      } catch {
-        // embedding is best-effort; recall still works on keyword + temporal filter
+      } catch (err) {
+        // Best-effort: the Fact is still stored, recall still works on keyword +
+        // temporal filter. But warn (stderr — never stdout/MCP) so a misconfigured
+        // or down embedding provider doesn't SILENTLY degrade semantic recall.
+        console.error(
+          "[tense] embedding failed; Fact stored without a vector (semantic recall degraded):",
+          err instanceof Error ? err.message : err,
+        );
       }
     }
 

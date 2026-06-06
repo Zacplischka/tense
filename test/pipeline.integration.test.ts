@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import pg from "pg";
 import { TEST_DATABASE_URL } from "./globalSetup.js";
 import { TemporalGraphStore } from "../src/db/store.js";
@@ -109,6 +109,33 @@ describe("remember pipeline (extract -> resolve -> supersede -> persist)", () =>
     expect(left.factsSuperseded).toEqual([
       expect.objectContaining({ predicate: "works-at", object: "Acme", reason: "contradiction" }),
     ]);
+  });
+
+  it("still ingests but warns (stderr) when embedding fails — no silent semantic degradation", async () => {
+    const embedFails: RememberDeps = {
+      ...deps,
+      provider: {
+        async complete() {
+          return { text: "", model: "stub" };
+        },
+        async embed(): Promise<number[][]> {
+          throw new Error("embed boom");
+        },
+      } satisfies ProviderClient,
+    };
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const summary = await remember(embedFails, "Zach reports to Alice.");
+      // Ingestion succeeds despite the embedding failure (best-effort).
+      expect(summary.factsCreated).toHaveLength(1);
+      // …but the failure is surfaced on stderr (not swallowed silently).
+      const warned = errSpy.mock.calls.some(
+        (args) => /\[tense\]/.test(String(args[0])) && /embedding/i.test(String(args[0])),
+      );
+      expect(warned).toBe(true);
+    } finally {
+      errSpy.mockRestore();
+    }
   });
 
   it("surfaces extraction failure as an error without corrupting the graph", async () => {
