@@ -565,3 +565,21 @@ priority:_
   full suite not run (markdown-only addition cannot affect it).
 - **Commit**: fa4131f
 - **Saturation**: none changed (docs produced V=3).
+
+### Iteration 23 · tests · mode=exploit
+- **Change**: Add `test/recall-filters-combined.integration.test.ts` — exercises
+  recall with `as_of` + `predicate` + `min_reinforced` COMBINED (each was only
+  tested in isolation), across all three rankers: keyword + semantic (via a live
+  BagOfWordsProvider) and the empty-query browse (`recallByTemporal`). Guards the
+  hand-built `$n` param indexing (3 optional clauses × 3 methods) where a combined
+  filter could silently drift; also pins that `as_of` excludes null-`valid_at`
+  Facts even when other filters would include them.
+- **Net-positive**: improves tests (regression guard for the fragile combined
+  dynamic-SQL path — the product's core recall correctness, previously untested in
+  combination); protects nothing-at-risk (additive test, no source change).
+  V=3 C=5 S=5.
+- **Files**: test/recall-filters-combined.integration.test.ts (new).
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm test` ✓
+  (37 files / 167 tests; +1 file, +4 tests vs iter 21). Build unaffected (no src).
+- **Commit**: 6953f71
+- **Saturation**: none changed (tests produced V=3).
