@@ -53,6 +53,12 @@ export interface EntitySummary {
   name: string;
   /** Count of Current Facts where this Entity is the subject or the object. */
   currentFacts: number;
+  /**
+   * Distinct Predicates of those Current Facts (sorted) — the Entity's relationship
+   * "shape", so a caller browsing can see what KINDS of Facts touch it (e.g.
+   * reports-to, knows) and pick its next move (history-by-predicate / recall).
+   */
+  predicates: string[];
 }
 
 /**
@@ -667,7 +673,8 @@ export class TemporalGraphStore {
     const params = q === null ? [] : [q];
     const { rows } = await this.pool.query(
       `SELECT e.id, e.name,
-              count(f.id) FILTER (WHERE f.expired_at IS NULL)::int AS current_facts
+              count(f.id) FILTER (WHERE f.expired_at IS NULL)::int AS current_facts,
+              array_agg(DISTINCT f.predicate) FILTER (WHERE f.expired_at IS NULL) AS predicates
        FROM entities e
        LEFT JOIN facts f ON f.subject_id = e.id OR f.object_id = e.id
        ${where}
@@ -680,6 +687,9 @@ export class TemporalGraphStore {
       id: r.id as string,
       name: r.name as string,
       currentFacts: r.current_facts as number,
+      // array_agg yields NULL (not []) when no Current Fact matches the FILTER;
+      // sort for a deterministic, stable order.
+      predicates: ((r.predicates as string[] | null) ?? []).sort(),
     }));
   }
 

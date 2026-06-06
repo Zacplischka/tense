@@ -62,6 +62,15 @@ describe("listEntities (store)", () => {
     ]);
   });
 
+  it("lists each Entity's distinct Current-Fact Predicates (its relationship shape)", async () => {
+    await seed();
+    const byName = Object.fromEntries((await store.listEntities()).map((e) => [e.name, e.predicates]));
+    expect(byName["Zach"]).toEqual(["knows", "reports-to"]); // sorted; reports-to Bob + knows Carol
+    expect(byName["Bob"]).toEqual(["reports-to"]); // object of the Current reports-to
+    expect(byName["Carol"]).toEqual(["knows"]);
+    expect(byName["Alice"]).toEqual([]); // only a superseded Fact touches her
+  });
+
   it("filters by a case-insensitive name substring", async () => {
     await seed();
     expect((await store.listEntities({ query: "al" })).map((e) => e.name)).toEqual(["Alice"]);
@@ -84,7 +93,7 @@ describe("entities (MCP tool)", () => {
 
     const filtered: any = await client.callTool({ name: "entities", arguments: { query: "al" } });
     expect(JSON.parse(filtered.content[0].text)).toEqual([
-      { id: expect.any(String), name: "Alice", currentFacts: 0 },
+      { id: expect.any(String), name: "Alice", currentFacts: 0, predicates: [] },
     ]);
   });
 });

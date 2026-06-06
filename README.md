@@ -133,7 +133,7 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 | `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological — each Fact with its valid interval, `learnedAt`, and `retiredAt` (when the system closed it) |
 | `changes` | `(since, limit?)` | Transaction-time change feed — Facts learned or retired since a date (incremental sync), each with `learnedAt`/`retiredAt` |
 | `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown — each with its `cardinality` (`single` supersedes / `multi` accumulates) |
-| `entities` | `(query?, limit?)` | List/search Entities, each with its Current-Fact count (degree), most-connected first |
+| `entities` | `(query?, limit?)` | List/search Entities, each with its Current-Fact count (degree) and the distinct `predicates` touching it (relationship shape), most-connected first |
 | `sources` | `(limit?)` | List ingested Sources newest-first — label, preview, ingest time, and how many Facts cite each |
 
 ### Worked example

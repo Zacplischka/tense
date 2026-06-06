@@ -214,7 +214,8 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       title: "Entities",
       description:
         "List the Entities in the graph, each with how many Current Facts touch it " +
-        "(subject or object), most-connected first. Optionally filter by a name " +
+        "(subject or object) and the distinct Predicates of those Facts (its " +
+        "relationship 'shape'), most-connected first. Optionally filter by a name " +
         "substring. Browse the graph by Entity — complements `recall` (by relevance) " +
         "and `history` (by known subject).",
       inputSchema: {

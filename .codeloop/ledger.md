@@ -1222,3 +1222,28 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
 - **Commit**: 89c34d7
 - **Saturation**: ALL flags cleared (fresh survey, iter 50) — all already 0;
   correctness/robustness active (V=3). Codebase remains mature/clean.
+
+### Iteration 51 · new-capability (functionality) · mode=exploit
+- **Change**: `entities` now returns each Entity's distinct Current-Fact
+  `predicates` (sorted) alongside its degree — the Entity's relationship "shape"
+  (e.g. Zach → [knows, reports-to]). An agent browsing can see what KINDS of Facts
+  touch an Entity and pick its next call (history-by-predicate / recall) without a
+  round-trip. Per-Entity analogue of the global predicate breakdown in `stats`.
+- **Net-positive**: improves functionality (surface useful structure). Protects the
+  existing degree/ordering (unchanged), store purity, the demo. V=3 C=4 S=4.
+- **Why functionality**: diversify blocks the last two dims (correctness 50, UX 49);
+  functionality is steering-primary and open (last 45). (Also noted a stale README
+  "live viewer" section that omits the as-of scrubber/entity filter/detail-panel
+  navigation — backlogged as a docs candidate for a future non-functionality turn.)
+- **Design / blast radius**: one SQL addition (`array_agg(DISTINCT f.predicate)
+  FILTER (WHERE expired_at IS NULL)`; NULL→[] + JS sort for determinism). Additive
+  field on EntitySummary; the viewer uses its own snapshot (not listEntities) so no
+  viewer impact. Updated the MCP-tool test's explicit Alice assertion to the
+  enriched shape (predicates: []) — strengthened, not weakened.
+- **Files**: src/db/store.ts (EntitySummary.predicates + query + mapper),
+  src/mcp/server.ts (entities description), test/entities.integration.test.ts
+  (predicate-shape store test + MCP-tool assertion), README.md (entities row).
+- **Verification**: `npm run check` → EXIT=0 (40 files / 192 tests, +1; viewer
+  typecheck + build ✓). → pass.
+- **Commit**: e16c7ae
+- **Saturation**: new-capability/functionality active (V=3) — no flag change.
