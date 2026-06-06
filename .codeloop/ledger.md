@@ -29,6 +29,10 @@ they directly serve a functionality/UX change.
   - build: `npm run build`          (`tsc -p tsconfig.json` → dist)
   - test: `npm test`                (`vitest run` — 23 files / 95 tests at bootstrap)
   - lint: `npm run lint`            (`eslint . --max-warnings 0`; added iter 7)
+  - viewer: `cd viewer && npm run typecheck && npm run build` (separate Next.js
+    package, own toolchain; not covered by the main vitest/lint gate. Note: the
+    main suite's `test/graph-model.test.ts` DOES import `viewer/lib/graph-model`,
+    so viewer type changes there ripple into the main typecheck/test.)
 - **Test prerequisites**: Postgres must be up (`pnpm db:up`; container `tense-pg`,
   pgvector/pg16 on :5432). Vitest globalSetup creates+migrates the isolated
   `tense_test` DB. Most tests are integration tests against real Postgres;
@@ -80,10 +84,11 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
   = add pg_trgm GIN + ivfflat indexes via a migration. Deferred until scale matters.
 
 _Functionality/UX focus (user steer, iter 8) — prioritize these:_
-- [UX] **Viewer survey + improvement** (`viewer/`, Next.js) — the major untouched
-  human-facing surface. Survey it next; verify via `cd viewer && pnpm build`/run,
-  not the vitest gate. Likely wins: surface the new `reinforcedBy`/`stats`/
-  `entities` data, clearer Current-vs-superseded affordances, empty/error states.
+- [UX] **Viewer** (`viewer/`, Next.js) — surveyed iter 9. DONE so far: rich Fact
+  hover tooltip (triple + validity interval + Current/Superseded + reinforcedBy).
+  Remaining ideas: a header summary using `stats` (entity/source/fact counts); a
+  node-click detail panel listing that Entity's Facts; reinforcedBy → link width;
+  error/empty-state polish (empty state exists; error only shows in the header).
 - [functionality] Expose `limit` on the `recall` MCP tool (recall() already
   supports it; the tool hides it) — also add an optional `predicate` filter.
 - [functionality] `recall`/`entities` could return `reinforcedBy`-sorted or
@@ -235,3 +240,25 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   `npm test` ✓ (28 files / 121 tests; +1 file, +3 tests vs iter 7).
 - **Commit**: 2736617
 - **Saturation**: none changed (functionality produced V=4).
+
+### Iteration 9 · UX (viewer) · mode=exploit (user-steered)
+- **Change**: Rich Fact tooltip on link hover in the viewer. The snapshot already
+  fetched validity intervals but the UI never showed them, and iter-8's
+  `reinforcedBy` wasn't surfaced to humans at all. Now hovering an edge shows
+  `subject → predicate → object`, Current/Superseded, the valid interval
+  (`valid <from> → now`/`<to>`), and `· N source(s)`. Enriched `fetchSnapshot`
+  (JOIN entity names + fact_sources count), threaded subject/object/validAt/
+  invalidAt/reinforcedBy through `SnapshotFact` (optional fields) → page.tsx link
+  objects → Graph `linkLabel`; HTML-escaped names. `reinforcedBy` added to the memo
+  signature so a Reaffirmation refreshes the tooltip without moving nodes.
+- **Net-positive**: improves UX (surfaces Tense's bi-temporal + provenance signal
+  in the human UI); protects correctness (additive; node-position stability and the
+  Current-from-`expired_at` rule unchanged; graph-model test still green). V=4 C=4 S=4.
+- **Files**: viewer/lib/graph-model.ts, viewer/lib/snapshot.ts, viewer/app/page.tsx,
+  viewer/components/Graph.tsx.
+- **Verification**: viewer `npm run typecheck` ✓ · viewer `npm run build` ✓ · main
+  `npm run typecheck` ✓ · `npm run lint` ✓ · `npm test` ✓ (28 files / 121, unchanged)
+  · data-path smoke (throwaway, deleted): `fetchSnapshot` returns subject/object +
+  reinforcedBy, reaffirmed Fact shows reinforcedBy=2.
+- **Commit**: 1fc6f5f
+- **Saturation**: none changed (UX produced V=4).

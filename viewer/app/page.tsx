@@ -75,7 +75,9 @@ export default function Page() {
   const topoSig =
     snapshot.entities.map((e) => e.id).join(",") +
     "|" +
-    snapshot.facts.map((f) => `${f.id}:${f.current ? 1 : 0}`).join(",");
+    // include current + reinforcedBy so a Supersession OR a Reaffirmation rebuilds
+    // the links (and refreshes the hover tooltip) without disturbing node positions.
+    snapshot.facts.map((f) => `${f.id}:${f.current ? 1 : 0}:${f.reinforcedBy ?? 0}`).join(",");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const graphData = useMemo(() => {
     const cache = nodeCache.current;
@@ -94,7 +96,18 @@ export default function Page() {
     for (const id of Array.from(cache.keys())) if (!present.has(id)) cache.delete(id);
     const links = snapshot.facts
       .filter((f) => present.has(f.subjectId) && present.has(f.objectId))
-      .map((f) => ({ id: f.id, source: f.subjectId, target: f.objectId, predicate: f.predicate, current: f.current }));
+      .map((f) => ({
+        id: f.id,
+        source: f.subjectId,
+        target: f.objectId,
+        predicate: f.predicate,
+        current: f.current,
+        subject: f.subject,
+        object: f.object,
+        validAt: f.validAt,
+        invalidAt: f.invalidAt,
+        reinforcedBy: f.reinforcedBy,
+      }));
     return { nodes, links };
   }, [topoSig]);
 

@@ -32,10 +32,14 @@ export async function fetchSnapshot(): Promise<Snapshot> {
       "SELECT id, name FROM entities ORDER BY created_at ASC, id ASC",
     );
     const facts = await client.query(
-      `SELECT id, subject_id, predicate, object_id,
-              (expired_at IS NULL) AS current, valid_at, invalid_at
-       FROM facts
-       ORDER BY created_at`,
+      `SELECT f.id, f.subject_id, f.predicate, f.object_id,
+              (f.expired_at IS NULL) AS current, f.valid_at, f.invalid_at,
+              subj.name AS subject_name, obj.name AS object_name,
+              (SELECT count(*)::int FROM fact_sources fs WHERE fs.fact_id = f.id) AS reinforced_by
+       FROM facts f
+       JOIN entities subj ON subj.id = f.subject_id
+       JOIN entities obj  ON obj.id  = f.object_id
+       ORDER BY f.created_at`,
     );
     await client.query("COMMIT");
 
@@ -49,6 +53,9 @@ export async function fetchSnapshot(): Promise<Snapshot> {
         current: r.current,
         validAt: r.valid_at ? new Date(r.valid_at).toISOString() : null,
         invalidAt: r.invalid_at ? new Date(r.invalid_at).toISOString() : null,
+        subject: r.subject_name as string,
+        object: r.object_name as string,
+        reinforcedBy: (r.reinforced_by as number) ?? 0,
       })),
     };
   } catch (err) {

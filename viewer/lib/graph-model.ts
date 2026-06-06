@@ -21,6 +21,11 @@ export interface SnapshotFact {
   current: boolean;
   validAt: string | null;
   invalidAt: string | null;
+  /** Subject/object display names — optional so pure-mapping tests stay terse. */
+  subject?: string;
+  object?: string;
+  /** Distinct Sources asserting this Fact (origin + Reaffirmations, ADR 0005). */
+  reinforcedBy?: number;
 }
 
 export interface Snapshot {

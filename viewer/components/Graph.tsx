@@ -11,7 +11,45 @@ type FLink = {
   target: string | FNode;
   predicate: string;
   current: boolean;
+  /** Enrichment for the hover tooltip (optional; absent in minimal callers). */
+  subject?: string;
+  object?: string;
+  validAt?: string | null;
+  invalidAt?: string | null;
+  reinforcedBy?: number;
 };
+
+const HTML_ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+};
+const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => HTML_ESCAPES[c] ?? c);
+const fmtDate = (d: string | null | undefined): string => (d ? d.slice(0, 10) : "—");
+
+/**
+ * Rich hover tooltip for a Fact edge: the subject→predicate→object triple, its
+ * validity interval, whether it is Current or Superseded, and how many Sources
+ * reinforce it (ADR 0005). Surfaces in the UI the bi-temporal + provenance signal
+ * the graph already carries. Returned as HTML — react-force-graph renders
+ * linkLabel as a tooltip's innerHTML, so entity names are escaped.
+ */
+function linkTooltip(l: FLink): string {
+  const subj = esc(l.subject ?? "");
+  const obj = esc(l.object ?? "");
+  const pred = esc(l.predicate);
+  const status = l.current ? "Current" : "Superseded";
+  const interval = `valid ${fmtDate(l.validAt)} → ${l.current ? "now" : fmtDate(l.invalidAt)}`;
+  const n = l.reinforcedBy ?? 0;
+  const sources = n > 0 ? ` · ${n} source${n === 1 ? "" : "s"}` : "";
+  return (
+    `<div style="font:12px ui-sans-serif,system-ui,sans-serif;line-height:1.5">` +
+    `<div><b>${subj}</b> <span style="opacity:.7">${pred}</span> <b>${obj}</b></div>` +
+    `<div style="opacity:.8">${status} · ${interval}${sources}</div>` +
+    `</div>`
+  );
+}
 
 export interface GraphProps {
   data: { nodes: FNode[]; links: FLink[] };
@@ -158,7 +196,7 @@ export default function Graph({ data, width, height, highlightedIds }: GraphProp
       linkDirectionalArrowLength={(l: FLink) => (l.current ? 3.5 : 0)}
       linkDirectionalArrowRelPos={0.94}
       linkDirectionalArrowColor={(l: FLink) => (l.current ? "#475569" : "#cbd5e1")}
-      linkLabel={(l: FLink) => l.predicate}
+      linkLabel={(l: FLink) => linkTooltip(l)}
       linkCanvasObjectMode={() => "after"}
       linkCanvasObject={(l: FLink, ctx: CanvasRenderingContext2D, scale: number) => {
         if (scale < 2.2) return; // predicate labels only when zoomed in (less clutter; hover shows them too)
