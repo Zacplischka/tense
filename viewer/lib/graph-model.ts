@@ -133,3 +133,26 @@ export function factLinkWidth(current: boolean, reinforcedBy: number): number {
   const extraSources = Math.min(Math.max(reinforcedBy - 1, 0), 4); // 0..4 beyond the first
   return 1.4 + extraSources * 0.6; // 1.4 (1 source) … 3.8 (≥5 sources)
 }
+
+/**
+ * Re-derive a snapshot AS OF a past instant (valid time) — the viewer's
+ * point-in-time scrubber. Keeps only Facts that were VALID at `asOfMs` (the
+ * half-open interval `valid_at <= T < invalid_at`, per ADR 0002's point-in-time
+ * formula) and marks each Current, because a Fact valid at T *was* the truth
+ * then — even if it has since been superseded. Facts with a null `valid_at`
+ * can't be placed on the timeline, so they're omitted in as-of mode. Entities
+ * are passed through unchanged (append-only; isolated nodes are fine). Pure — a
+ * client-side transform of the snapshot already in hand, so no extra query.
+ */
+export function snapshotAsOf(snapshot: Snapshot, asOfMs: number): Snapshot {
+  const facts = snapshot.facts
+    .filter((f) => {
+      if (f.validAt === null) return false;
+      const start = Date.parse(f.validAt);
+      if (Number.isNaN(start) || start > asOfMs) return false; // not yet valid at T
+      const end = f.invalidAt ? Date.parse(f.invalidAt) : Number.POSITIVE_INFINITY;
+      return asOfMs < end; // still valid at T (half-open: ends are exclusive)
+    })
+    .map((f) => ({ ...f, current: true }));
+  return { entities: snapshot.entities, facts };
+}

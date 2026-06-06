@@ -85,10 +85,10 @@ _Discovered opportunities not yet acted on (scout output / deferred ideas)._
 
 _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 - [UX] **Viewer** (`viewer/`, Next.js). DONE: rich Fact hover tooltip (iter 9);
-  node-click detail panel (iter 11); reinforcedBy → link width + discoverability
-  hints (iter 13, via pure `factLinkWidth`). Remaining (lower value): a header
-  summary using `stats` (entity/source/fact counts — most are already shown);
-  error-state polish (error only shows in the header today).
+  node-click detail panel (iter 11); reinforcedBy → link width (iter 13);
+  point-in-time as-of scrubber (iter 15, via pure `snapshotAsOf`) — the headline
+  bi-temporal capability made visual. Remaining (lower value): a header summary
+  using `stats`; error-state polish (error only shows in the header today).
 - ~~[functionality] Expose `limit` + `predicate` on `recall`~~ — DONE (iter 10):
   threaded through recall() + the 3 store rankers + the MCP tool; predicate
   normalized to slug.
@@ -103,6 +103,9 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
 _Note (iter 14): the high-value functionality/UX backlog is largely exhausted.
 Remaining items are lower-value (viewer stats-header / error polish) or risky
 (reinforcedBy ranking vs eval). Expect upcoming turns to SCOUT rather than force._
+_Update (iter 15 fresh survey): found one more high-value item — the viewer had no
+way to show the product's headline point-in-time capability. Built the as-of
+scrubber. After this, remaining items really are low-value; SCOUT is likely next._
 
 ## Log
 
@@ -367,3 +370,24 @@ Remaining items are lower-value (viewer stats-header / error polish) or risky
   `npm test` ✓ (32 files / 145 tests; +1 file, +4 tests vs iter 13).
 - **Commit**: 40f1e35
 - **Saturation**: none changed (functionality produced V=3).
+
+### Iteration 15 · UX (viewer) · mode=exploit (fresh survey, user-steered)
+- **Change**: Point-in-time scrubber in the viewer — pick an "as of" date and the
+  graph re-renders to the state VALID at that instant (Tense's headline capability,
+  previously only reachable via `recall(as_of)` / the MCP tools, never visible in
+  the UI). Pure, unit-tested `snapshotAsOf(snapshot, asOfMs)` derives the valid-at-T
+  graph client-side from the snapshot already in hand (no API change). page.tsx
+  gains an `asOf` date input + Live reset; the legend/status switch to "Valid then
+  (N)" / "as of <date>". `asOf=""` ⇒ view===snapshot ⇒ identical live behavior;
+  node positions persist across live↔as-of (entities pass through unchanged).
+- **Net-positive**: improves UX + showcases core functionality (interactive
+  bi-temporality — scrub the org-change story and watch the Current edge change);
+  protects the live view (additive; pure client-side transform; no backend touch).
+  V=4 C=4 S=4 (exceptional → clears diversify).
+- **Files**: viewer/lib/graph-model.ts (snapshotAsOf), viewer/app/page.tsx,
+  test/snapshot-as-of.test.ts (new, main gate).
+- **Verification**: viewer `npm run typecheck` ✓ · viewer `npm run build` ✓ · main
+  `npm run typecheck` ✓ · `npm run lint` ✓ · `npm test` ✓ (33 files / 151 tests;
+  +1 file, +6 tests vs iter 14).
+- **Commit**: f28b81f
+- **Saturation**: cleared by fresh survey (all 0); UX produced V=4.

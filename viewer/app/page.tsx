@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { factsForEntity, type EntityFact, type Snapshot } from "../lib/graph-model";
+import { factsForEntity, snapshotAsOf, type EntityFact, type Snapshot } from "../lib/graph-model";
 
 // Canvas/WebGL graph must be client-only (it touches `window`); it owns its ref.
 const Graph = dynamic(() => import("../components/Graph"), {
@@ -29,6 +29,7 @@ export default function Page() {
   const [message, setMessage] = useState<string | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [asOf, setAsOf] = useState(""); // "" = live; a YYYY-MM-DD date = point-in-time
 
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const seen = useRef<Set<string>>(new Set());
@@ -72,19 +73,27 @@ export default function Page() {
     return () => ro.disconnect();
   }, []);
 
+  // --- point-in-time view: with an as-of date set, derive the graph valid at that
+  // instant from the snapshot already in hand (pure; no extra request). "" = live.
+  const asOfMs = asOf ? Date.parse(asOf) : Number.NaN;
+  const isAsOf = !Number.isNaN(asOfMs);
+  const view = isAsOf ? snapshotAsOf(snapshot, asOfMs) : snapshot;
+
   // --- stable graph data: reuse node objects so positions persist across polls
   const nodeCache = useRef<Map<string, FNode>>(new Map());
   const topoSig =
-    snapshot.entities.map((e) => e.id).join(",") +
+    view.entities.map((e) => e.id).join(",") +
     "|" +
     // include current + reinforcedBy so a Supersession OR a Reaffirmation rebuilds
-    // the links (and refreshes the hover tooltip) without disturbing node positions.
-    snapshot.facts.map((f) => `${f.id}:${f.current ? 1 : 0}:${f.reinforcedBy ?? 0}`).join(",");
+    // the links (and refreshes the hover tooltip) without disturbing node positions,
+    // and the as-of key so scrubbing the date re-derives the valid-at-T edges.
+    (isAsOf ? `@${asOf}|` : "") +
+    view.facts.map((f) => `${f.id}:${f.current ? 1 : 0}:${f.reinforcedBy ?? 0}`).join(",");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const graphData = useMemo(() => {
     const cache = nodeCache.current;
     const present = new Set<string>();
-    const nodes = snapshot.entities.map((e) => {
+    const nodes = view.entities.map((e) => {
       present.add(e.id);
       const existing = cache.get(e.id);
       if (existing) {
@@ -96,7 +105,7 @@ export default function Page() {
       return n;
     });
     for (const id of Array.from(cache.keys())) if (!present.has(id)) cache.delete(id);
-    const links = snapshot.facts
+    const links = view.facts
       .filter((f) => present.has(f.subjectId) && present.has(f.objectId))
       .map((f) => ({
         id: f.id,
@@ -116,11 +125,11 @@ export default function Page() {
   const currentCount = graphData.links.filter((l) => l.current).length;
   const supersededCount = graphData.links.length - currentCount;
 
-  // Click-to-inspect: the selected Entity and its Facts, derived from the snapshot
-  // already in hand (no extra request). Entities are append-only, so a selection
+  // Click-to-inspect: the selected Entity and its Facts, derived from the current
+  // view (live or as-of) already in hand. Entities are append-only, so a selection
   // never goes stale.
-  const selectedEntity = selectedId ? snapshot.entities.find((e) => e.id === selectedId) ?? null : null;
-  const selectedFacts: EntityFact[] = selectedId ? factsForEntity(snapshot, selectedId) : [];
+  const selectedEntity = selectedId ? view.entities.find((e) => e.id === selectedId) ?? null : null;
+  const selectedFacts: EntityFact[] = selectedId ? factsForEntity(view, selectedId) : [];
 
   // --- growth glow: green-highlight genuinely new Entities -----------------
   useEffect(() => {
@@ -179,12 +188,30 @@ export default function Page() {
         <h1 style={{ fontSize: 22, margin: 0 }}>
           Tense <span style={{ color: "#64748b", fontWeight: 400 }}>— watch the graph grow</span>
         </h1>
-        <div style={{ display: "flex", gap: 18, alignItems: "center", marginTop: 8, fontSize: 13, color: "#475569" }}>
-          <Legend solid label={`Current (${currentCount})`} />
-          <Legend solid={false} label={`Superseded (${supersededCount})`} />
-          <span style={{ color: "#94a3b8" }}>· thicker = more sources · drag · scroll to zoom · click a node</span>
-          <span style={{ marginLeft: "auto", color: error ? "#dc2626" : "#94a3b8" }}>
-            {error ? `⚠ ${error}` : `live · ${POLL_MS}ms`}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center", marginTop: 8, fontSize: 13, color: "#475569" }}>
+          <Legend solid label={isAsOf ? `Valid then (${currentCount})` : `Current (${currentCount})`} />
+          {!isAsOf && <Legend solid={false} label={`Superseded (${supersededCount})`} />}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <label htmlFor="asof" style={{ color: "#94a3b8" }}>as of</label>
+            <input
+              id="asof"
+              type="date"
+              value={asOf}
+              onChange={(e) => setAsOf(e.target.value)}
+              style={{ fontSize: 12, padding: "2px 6px", border: "1px solid #cbd5e1", borderRadius: 6, color: "#475569", fontFamily: "inherit" }}
+            />
+            {isAsOf && (
+              <button
+                onClick={() => setAsOf("")}
+                style={{ fontSize: 12, padding: "2px 8px", border: "1px solid #cbd5e1", borderRadius: 6, background: "#fff", color: "#4f46e5", cursor: "pointer" }}
+              >
+                Live
+              </button>
+            )}
+          </span>
+          <span style={{ color: "#94a3b8" }}>· drag · scroll · click a node · thicker = more sources</span>
+          <span style={{ marginLeft: "auto", color: error ? "#dc2626" : isAsOf ? "#4f46e5" : "#94a3b8" }}>
+            {error ? `⚠ ${error}` : isAsOf ? `as of ${asOf}` : `live · ${POLL_MS}ms`}
           </span>
         </div>
       </header>
