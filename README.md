@@ -128,7 +128,7 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 |---|---|---|
 | `remember` | `(text, source?)` | Facts created / superseded / reaffirmed after extraction + supersession (each superseded Fact tagged `reason`: `cardinality` / `contradiction`), plus how each name resolved (`entitiesResolved`: new / exact / fuzzy) |
 | `preview` | `(text)` | Dry-run of `remember` — what it *would* create / supersede / reaffirm (and how names resolve), writing nothing |
-| `recall` | `(query, as_of?, predicate?, limit?, min_reinforced?)` | Ranked Facts — Current by default, or valid-at-`as_of`; optionally scoped to a Predicate, capped, or filtered to Facts confirmed by ≥`min_reinforced` Sources — each with Source, interval, and `reinforcedBy` |
+| `recall` | `(query, as_of?, predicate?, limit?, min_reinforced?)` | Ranked Facts — Current by default, or valid-at-`as_of`; optionally scoped to a Predicate, capped, or filtered to Facts confirmed by ≥`min_reinforced` Sources — each with Source, validity interval, `reinforcedBy`, and `learnedAt` (transaction time) |
 | `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
 | `changes` | `(since, limit?)` | Transaction-time change feed — Facts learned or retired since a date (incremental sync), each with `learnedAt`/`retiredAt` |
 | `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown |
@@ -137,8 +137,9 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 
 ### Worked example
 
-The org-change story end to end. (`id`/`sourceId` are UUIDs, abbreviated here;
-every other value is exactly what the tools return.)
+The org-change story end to end. (`id`/`sourceId` are UUIDs, abbreviated here,
+and `learnedAt` is a wall-clock ingest time — yours will differ; every other
+value is exactly what the tools return.)
 
 **1. `remember` the first Source** — `text: "[2024-01-01] Zach reports to Alice."`, `source: "org-2024q1"`:
 
@@ -175,18 +176,25 @@ closes a Fact under a *different* predicate than the one just stated.
 ```json
 [{ "id": "3d7b…", "subject": "Zach", "predicate": "reports-to", "object": "Bob",
    "validAt": "2024-06-01T00:00:00.000Z", "invalidAt": null, "current": true,
+   "learnedAt": "2025-09-12T18:04:53.217Z",
    "source": { "id": "7deb…", "label": "org-2024q2", "text": "[2024-06-01] Zach reports to Bob." },
    "reinforcedBy": 1 }]
 ```
 
 `reinforcedBy` is how many distinct Sources assert the Fact (origin + any
 [Reaffirmations](#how-it-works)); a higher count means a more-confirmed Fact.
+`learnedAt` is the **transaction time** — when the system learned the Fact — the
+other bi-temporal axis from `validAt`/`invalidAt` (when it was *true*): Zach has
+reported to Bob since 2024-06-01, but the system only learned it at ingest.
+`current` says *whether* a Fact has been retired; `learnedAt` says *when* it
+entered memory.
 
 **4. `recall` point-in-time** — same `query` with `as_of: "2024-03-01"` returns who was Current *then* — Alice — closed off at the moment Bob took over:
 
 ```json
 [{ "id": "c08d…", "subject": "Zach", "predicate": "reports-to", "object": "Alice",
    "validAt": "2024-01-01T00:00:00.000Z", "invalidAt": "2024-06-01T00:00:00.000Z", "current": false,
+   "learnedAt": "2025-09-12T18:04:51.880Z",
    "source": { "id": "0d67…", "label": "org-2024q1", "text": "[2024-01-01] Zach reports to Alice." },
    "reinforcedBy": 1 }]
 ```

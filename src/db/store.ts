@@ -80,6 +80,14 @@ export interface RecalledFact {
   validAt: Date | null;
   invalidAt: Date | null;
   current: boolean;
+  /**
+   * Transaction time: when the system first learned this Fact (created_at) — the
+   * other bi-temporal axis from `validAt`/`invalidAt` (when it was true in the
+   * world). `current` says IF the Fact has been retired; `learnedAt` says WHEN it
+   * entered memory, so a caller can tell "true since 2020 but only learned last
+   * week" apart from a long-held belief.
+   */
+  learnedAt: Date;
   /** The origin Source (first to assert this Fact). */
   source: { id: string; label: string | null; text: string };
   /**
@@ -92,13 +100,11 @@ export interface RecalledFact {
 
 /**
  * A Fact whose **transaction time** changed within a window — the `changes` feed.
- * Extends {@link RecalledFact} with the transaction-time stamps (when the system
- * learned and, if applicable, retired the Fact), so a caller can tell a newly
- * learned Fact from one that was just superseded. Distinct from valid-time recall.
+ * Extends {@link RecalledFact} (which already carries `learnedAt`) with the
+ * retirement stamp, so a caller can tell a newly learned Fact from one that was
+ * just superseded. Distinct from valid-time recall.
  */
 export interface FactChange extends RecalledFact {
-  /** Transaction time: when the system first held this Fact (created_at). */
-  learnedAt: Date;
   /** Transaction time: when the system retired it (expired_at); null = still Current. */
   retiredAt: Date | null;
 }
@@ -172,6 +178,7 @@ function mapRecalledRow(row: Record<string, unknown>): RecalledFact {
     validAt: (row.valid_at as Date | null) ?? null,
     invalidAt: (row.invalid_at as Date | null) ?? null,
     current: row.expired_at === null,
+    learnedAt: row.tx_created as Date,
     source: {
       id: row.source_id as string,
       label: (row.source_label as string | null) ?? null,
@@ -442,7 +449,6 @@ export class TemporalGraphStore {
     );
     return rows.map((r) => ({
       ...mapRecalledRow(r),
-      learnedAt: r.tx_created as Date,
       retiredAt: (r.expired_at as Date | null) ?? null,
     }));
   }

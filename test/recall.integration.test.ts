@@ -55,6 +55,19 @@ describe("recall (point-in-time)", () => {
     expect(fact?.invalidAt).toBeNull(); // Current Fact has an open valid interval
   });
 
+  it("surfaces learnedAt (transaction time), distinct from valid time and consistent with `changes`", async () => {
+    const [bob] = await recall({ store }, "Zach reports to");
+    expect(bob?.learnedAt).toBeInstanceOf(Date);
+    // Transaction time (when the system learned it, ~now) is the OTHER bi-temporal
+    // axis — here clearly later than valid time (true in the world since 2024-06-01).
+    expect(bob!.learnedAt.getTime()).toBeGreaterThan(bob!.validAt!.getTime());
+    // The same Fact's learnedAt agrees across the valid-time (recall) and the
+    // transaction-time (changes) lenses — both read the one created_at.
+    const changes = await store.changesSince(new Date("2000-01-01T00:00:00Z"));
+    const bobChange = changes.find((c) => c.id === bob!.id);
+    expect(bobChange?.learnedAt.toISOString()).toBe(bob!.learnedAt.toISOString());
+  });
+
   it("empty query browses the temporally-filtered set", async () => {
     const current = await recall({ store }, "");
     expect(current.every((f) => f.current)).toBe(true);

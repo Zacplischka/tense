@@ -927,3 +927,33 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   passing pipeline test. → pass.
 - **Commit**: 6dd6027
 - **Saturation**: docs active (V=3) — no flag change.
+
+### Iteration 39 · new-capability (functionality) · mode=exploit
+- **Change**: surfaced `learnedAt` (transaction time — when the system learned a
+  Fact) on every `RecalledFact`, completing recall's bi-temporal transparency.
+  recall already exposed valid time (`validAt`/`invalidAt`) and a lossy `current`
+  boolean (transaction-time-derived: IF retired) but never WHEN a Fact entered
+  memory — though `RECALL_SELECT` already computed `created_at AS tx_created` and
+  dropped it for plain recall. Now mapped through; `FactChange` simplified to
+  inherit it (was a redundant redeclaration) and `changesSince` drops the
+  now-redundant assignment. `learnedAt` now also rides `history` + `allFacts`.
+- **Net-positive**: improves functionality (surfaces the system's core bi-temporal
+  "other axis" — tracked but hidden). Protects correctness (ALL 6 mapRecalledRow
+  paths use RECALL_SELECT → tx_created always present, learnedAt non-null), the
+  `changes` output (JSON unchanged: learnedAt+retiredAt still both present), the
+  demo. V=3 C=4 S=4.
+- **Why functionality (not UX/docs)**: diversify blocks the last two dims (docs 38,
+  UX 37); functionality (36) is open and is the steering's primary focus +
+  "surface a hidden signal" example.
+- **Design / blast radius**: additive field on RecalledFact. No viewer use (its
+  snapshot has its own types); no test deep-equals the shape; eval `allFacts`
+  reads object/predicate/current/validAt (unaffected). README is "captured exact",
+  so the wall-clock learnedAt needed a caveat tweak (yours will differ).
+- **Files**: src/db/store.ts (RecalledFact +learnedAt, mapRecalledRow, FactChange
+  simplified, changesSince), test/recall.integration.test.ts (new test: learnedAt
+  is a Date, distinct from validAt, consistent with the `changes` feed),
+  README.md (both recall examples + caveat + tools-table recall row).
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (40 files / 181 tests, +1 new). → pass.
+- **Commit**: f42f3bd
+- **Saturation**: new-capability/functionality active (V=3) — no flag change.
