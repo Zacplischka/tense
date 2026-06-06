@@ -86,7 +86,7 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     expect(recalled[0].source).toBeTruthy();
   });
 
-  it("carries the agent-facing signals across the JSON boundary (supersession reason + learnedAt)", async () => {
+  it("carries the agent-facing signals across the JSON boundary (reason, learnedAt, history retiredAt)", async () => {
     const client = await connect(depsWith(new StubExtractor()));
 
     await client.callTool({ name: "remember", arguments: { text: "[2024-01-01] Zach reports to Alice." } });
@@ -103,6 +103,15 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     const learned = recalled[0].learnedAt;
     expect(typeof learned).toBe("string");
     expect(Number.isNaN(Date.parse(learned))).toBe(false);
+
+    // First end-to-end exercise of the `history` tool over MCP: the chain crosses
+    // the wire, and each link's transaction-time retirement (retiredAt) serializes
+    // — a closed Fact carries an ISO date, the Current one is null.
+    const chain = payload(await client.callTool({ name: "history", arguments: { entity: "Zach", predicate: "reports-to" } }));
+    expect(chain.map((f: any) => f.object)).toEqual(["Alice", "Bob"]);
+    expect(typeof chain[0].retiredAt).toBe("string");
+    expect(Number.isNaN(Date.parse(chain[0].retiredAt))).toBe(false);
+    expect(chain[1].retiredAt).toBeNull();
   });
 
   it("stats tags each Predicate with its cardinality (single supersedes, multi accumulates)", async () => {

@@ -1128,3 +1128,25 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   inline substring match (like the existing inline sort), verified via build. → pass.
 - **Commit**: bc13242
 - **Saturation**: UX active (V=3) — no flag change.
+
+### Iteration 47 · tests · mode=exploit
+- **Change**: extended the MCP-boundary contract test to exercise the `history`
+  tool end-to-end over the real client→server→JSON path — the FIRST such coverage
+  (history was listed in the tools test but never *called* over MCP; only the
+  `history()` function was tested directly). Asserts the chain crosses the wire and
+  each link's `retiredAt` (iter-45 contract: closed Fact → ISO string, Current →
+  null) serializes. Now one test locks all recently-added agent-facing signals at
+  the wire: reason (36), learnedAt (39), history retiredAt (45).
+- **Net-positive**: improves tests (first MCP-path coverage of the `history` tool;
+  locks the iter-45 return-type change at the boundary agents use). Test-only,
+  additive. V=3 C=5 S=5.
+- **Why tests (not UX/functionality)**: diversify blocks the last two dims
+  (functionality 45, UX 46). Surveyed first: snapshotAsOf, eval metrics,
+  factsForEntity, ingest-summary all already tested; CONTEXT.md current — so the
+  genuine remaining gap was history's untested MCP path.
+- **Files**: test/mcp-adapter.integration.test.ts (extended the boundary test +
+  renamed; history call + retiredAt-over-wire assertions).
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · `npm test` ✓
+  (40 files / 186 tests). Viewer gate not run (no viewer change). → pass.
+- **Commit**: fe63c12
+- **Saturation**: tests active (V=3) — no flag change.
