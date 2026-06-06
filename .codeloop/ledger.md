@@ -94,8 +94,15 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   normalized to slug.
 - ~~[functionality] `min_reinforced` recall knob~~ — DONE (iter 12): trust
   threshold filtered in SQL across the 3 rankers + exposed on the MCP tool.
+- ~~[functionality] `sources` MCP tool~~ — DONE (iter 14): enumerate ingested
+  Sources (label, preview, ingest time, Facts-cited count); completes the
+  introspection trio stats/entities/sources. `TemporalGraphStore.listSources()`.
 - [functionality] (smaller, remaining) `reinforcedBy`-sorted recall / a `reinforcedBy`
   tiebreak in RRF — but ranking changes touch the eval headline; treat with care.
+
+_Note (iter 14): the high-value functionality/UX backlog is largely exhausted.
+Remaining items are lower-value (viewer stats-header / error polish) or risky
+(reinforcedBy ranking vs eval). Expect upcoming turns to SCOUT rather than force._
 
 ## Log
 
@@ -342,3 +349,21 @@ _Functionality/UX focus (user steer, iter 8) — prioritize these:_
   +4 tests vs iter 12).
 - **Commit**: 0d1bec5
 - **Saturation**: none changed (UX produced V=3).
+
+### Iteration 14 · new-capability (functionality) · mode=exploit (user-steered)
+- **Change**: Add a `sources` MCP tool + `TemporalGraphStore.listSources()` —
+  enumerate ingested Sources newest-first, each with its label, ingest time, a
+  ≤200-char text preview, and how many Facts cite it (origin or Reaffirmation).
+  Source is a first-class domain concept (CONTEXT.md) that nothing could list;
+  this completes the introspection surface: `stats` (aggregate), `entities`
+  (nodes), `sources` (provenance inputs). Read-only; honors the isError pattern.
+- **Net-positive**: improves functionality + agent UX (provenance audit — "what
+  raw text have I seen, how informative was each?"); protects existing tools
+  (read-only; no write-path or recall change). V=3 C=5 S=5.
+- **Files**: src/db/store.ts (SourceSummary + listSources), src/mcp/server.ts,
+  test/sources.integration.test.ts (new), test/mcp-adapter.integration.test.ts
+  (tool-list assertion), README.md.
+- **Verification**: `npm run lint` ✓ · `npm run typecheck` ✓ · `npm run build` ✓ ·
+  `npm test` ✓ (32 files / 145 tests; +1 file, +4 tests vs iter 13).
+- **Commit**: 40f1e35
+- **Saturation**: none changed (functionality produced V=3).

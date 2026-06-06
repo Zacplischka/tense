@@ -131,6 +131,7 @@ npx @modelcontextprotocol/inspector --cli node dist/server.js \
 | `history` | `(entity, predicate?)` | The full Supersession chain for a subject, chronological |
 | `stats` | `()` | A read-only snapshot: Entity/Source counts, Facts split Current vs superseded, and a per-Predicate breakdown |
 | `entities` | `(query?, limit?)` | List/search Entities, each with its Current-Fact count (degree), most-connected first |
+| `sources` | `(limit?)` | List ingested Sources newest-first — label, preview, ingest time, and how many Facts cite each |
 
 ### Worked example
 

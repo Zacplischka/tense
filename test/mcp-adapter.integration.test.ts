@@ -44,7 +44,7 @@ afterAll(async () => {
 });
 
 describe("MCP adapter (real client <-> server, provider replayed)", () => {
-  it("lists remember, recall, history, stats, and entities", async () => {
+  it("lists remember, recall, history, stats, entities, and sources", async () => {
     const client = await connect(depsWith(new StubExtractor()));
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
@@ -52,6 +52,7 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
       "history",
       "recall",
       "remember",
+      "sources",
       "stats",
     ]);
   });

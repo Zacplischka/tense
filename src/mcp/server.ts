@@ -149,5 +149,29 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     },
   );
 
+  server.registerTool(
+    "sources",
+    {
+      title: "Sources",
+      description:
+        "List the ingested Sources, newest first — each with its label, ingest time, " +
+        "a text preview, and how many Facts cite it (origin or Reaffirmation). A " +
+        "provenance audit of what raw text the memory has seen; full text comes back " +
+        "via `recall` (each Fact's `source.text`).",
+      inputSchema: {
+        limit: z.number().int().positive().optional().describe("Max Sources to return (default 50)."),
+      },
+    },
+    async ({ limit }) => {
+      try {
+        const sources = await deps.store.listSources({ limit });
+        return { content: [{ type: "text", text: JSON.stringify(sources, null, 2) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text", text: `sources failed: ${message}` }], isError: true };
+      }
+    },
+  );
+
   return server;
 }

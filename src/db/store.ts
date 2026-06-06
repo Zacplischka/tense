@@ -55,6 +55,22 @@ export interface EntitySummary {
   currentFacts: number;
 }
 
+/**
+ * One ingested Source in the `sources` listing — a provenance-audit view: its
+ * label, when it was ingested, how many Facts cite it (origin or Reaffirmation),
+ * and a short text preview. Full Source text comes back via `recall` (each Fact's
+ * `source.text`); this keeps the listing economical.
+ */
+export interface SourceSummary {
+  id: string;
+  label: string | null;
+  createdAt: Date;
+  /** Number of Facts that cite this Source (origin or Reaffirmation, ADR 0005). */
+  facts: number;
+  /** First ~200 chars of the Source text (truncated with … when longer). */
+  preview: string;
+}
+
 /** A Fact resolved for reading: entity names + Source text inlined. */
 export interface RecalledFact {
   id: string;
@@ -612,5 +628,31 @@ export class TemporalGraphStore {
       name: r.name as string,
       currentFacts: r.current_facts as number,
     }));
+  }
+
+  /**
+   * List ingested Sources for the `sources` tool — newest first, each with its
+   * label, ingest time, a text preview, and how many Facts cite it. Read-only;
+   * a provenance-audit complement to `stats` (aggregate) and `entities` (nodes).
+   */
+  async listSources(opts: { limit?: number } = {}): Promise<SourceSummary[]> {
+    const lim = clampLimit(opts.limit ?? 50);
+    const { rows } = await this.pool.query(
+      `SELECT s.id, s.label, s.text, s.created_at,
+              (SELECT count(*)::int FROM fact_sources fs WHERE fs.source_id = s.id) AS facts
+       FROM sources s
+       ORDER BY s.created_at DESC, s.id DESC
+       LIMIT ${lim}`,
+    );
+    return rows.map((r) => {
+      const text = (r.text as string) ?? "";
+      return {
+        id: r.id as string,
+        label: (r.label as string | null) ?? null,
+        createdAt: r.created_at as Date,
+        facts: (r.facts as number) ?? 0,
+        preview: text.length > 200 ? `${text.slice(0, 200)}…` : text,
+      };
+    });
   }
 }
