@@ -173,3 +173,37 @@ export function snapshotAsOf(snapshot: Snapshot, asOfMs: number): Snapshot {
     .map((f) => ({ ...f, current: true }));
   return { entities: snapshot.entities, facts };
 }
+
+/** A YYYY-MM-DD label for a UTC instant (valid_at is stored/parsed as UTC midnight). */
+function isoDay(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+/**
+ * Empty-state hint for the as-of scrubber, the headline point-in-time view. When
+ * NO Fact was valid at the chosen instant, {@link snapshotAsOf} still passes the
+ * Entities through, so the graph would show floating, edge-less nodes with no
+ * explanation — the bi-temporal view reading as *broken* rather than *empty by
+ * design*. Returns a human message (naming where the timeline begins, so a
+ * reviewer who scrubbed too far back knows the earliest datable Fact), or null
+ * when at least one Fact is valid then. Pure, so it's unit-tested.
+ */
+export function asOfEmptyHint(snapshot: Snapshot, asOfMs: number): string | null {
+  if (Number.isNaN(asOfMs)) return null; // not in as-of mode
+  if (snapshotAsOf(snapshot, asOfMs).facts.length > 0) return null; // something is valid then
+  const asOfDay = isoDay(asOfMs);
+  // Earliest datable valid_at across the whole snapshot — where the timeline starts.
+  let earliest = Number.POSITIVE_INFINITY;
+  for (const f of snapshot.facts) {
+    if (f.validAt === null) continue;
+    const t = Date.parse(f.validAt);
+    if (!Number.isNaN(t) && t < earliest) earliest = t;
+  }
+  if (earliest === Number.POSITIVE_INFINITY) {
+    return `No Facts were valid as of ${asOfDay} — none carry a valid-from date to place on the timeline.`;
+  }
+  if (asOfMs < earliest) {
+    return `No Facts were valid as of ${asOfDay}. The earliest Fact begins ${isoDay(earliest)}.`;
+  }
+  return `No Facts were valid as of ${asOfDay}.`; // a gap between intervals
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { factsForEntity, snapshotAsOf, type EntityFact, type Snapshot } from "../lib/graph-model";
+import { asOfEmptyHint, factsForEntity, snapshotAsOf, type EntityFact, type Snapshot } from "../lib/graph-model";
 import { ingestSummaryMessage } from "../lib/ingest-summary";
 
 // Canvas/WebGL graph must be client-only (it touches `window`); it owns its ref.
@@ -96,6 +96,10 @@ export default function Page() {
   const asOfMs = asOf ? Date.parse(asOf) : Number.NaN;
   const isAsOf = !Number.isNaN(asOfMs);
   const view = isAsOf ? snapshotAsOf(snapshot, asOfMs) : snapshot;
+  // In as-of mode, Entities still render but their edges may all be filtered out
+  // (e.g. a date before anything was valid). Surface that as empty-by-design rather
+  // than letting floating, edge-less nodes read as a broken graph.
+  const asOfHint = isAsOf ? asOfEmptyHint(snapshot, asOfMs) : null;
 
   // --- stable graph data: reuse node objects so positions persist across polls
   const nodeCache = useRef<Map<string, FNode>>(new Map());
@@ -353,6 +357,20 @@ export default function Page() {
         {snapshot.entities.length === 0 && (
           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#94a3b8", fontSize: 15, pointerEvents: "none" }}>
             No Facts yet — remember something.
+          </div>
+        )}
+        {/* As-of view with every edge filtered out: explain it's empty by design
+            (the chosen instant predates the Facts) rather than letting the
+            edge-less nodes look like a failed render. role=status so AT hears it. */}
+        {asOfHint && snapshot.entities.length > 0 && (
+          <div
+            role="status"
+            style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", padding: "0 32px", pointerEvents: "none" }}
+          >
+            <div style={{ maxWidth: 360, textAlign: "center", color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 22, marginBottom: 8 }}>🕰</div>
+              {asOfHint}
+            </div>
           </div>
         )}
         {selectedEntity && (

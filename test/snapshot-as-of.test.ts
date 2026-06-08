@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { snapshotAsOf, type Snapshot } from "../viewer/lib/graph-model.js";
+import { asOfEmptyHint, snapshotAsOf, type Snapshot } from "../viewer/lib/graph-model.js";
 
 /**
  * Pure point-in-time derivation behind the viewer's as-of scrubber: keep only
@@ -50,5 +50,49 @@ describe("snapshotAsOf", () => {
 
   it("passes Entities through unchanged", () => {
     expect(at("2024-03-01").entities).toEqual(snapshot.entities);
+  });
+});
+
+/**
+ * The empty-state hint behind the as-of overlay: when no Fact was valid at the
+ * chosen instant the graph would otherwise show floating, edge-less nodes, so the
+ * viewer explains it's empty by design and names where the timeline begins.
+ */
+const hintAt = (d: string) => asOfEmptyHint(snapshot, Date.parse(d));
+
+describe("asOfEmptyHint", () => {
+  it("returns null when at least one Fact is valid then (graph is not empty)", () => {
+    expect(hintAt("2024-03-01")).toBeNull(); // Alice is valid
+    expect(hintAt("2024-09-01")).toBeNull(); // Bob is valid
+  });
+
+  it("names the earliest datable Fact when the instant predates everything", () => {
+    const msg = hintAt("2023-01-01");
+    expect(msg).toContain("as of 2023-01-01");
+    expect(msg).toContain("earliest Fact begins 2024-01-01"); // f1's valid_at
+  });
+
+  it("returns a plain message for a gap between intervals (after the start, nothing valid)", () => {
+    // Only datable Facts are the reports-to chain (2024-01-01 .. open via Bob), so
+    // there is no real gap here; assert the gap-branch shape directly with a snapshot
+    // whose lone Fact has already been invalidated by T.
+    const gapped: Snapshot = {
+      entities: [{ id: "x", name: "X" }, { id: "y", name: "Y" }],
+      facts: [{ id: "g1", subjectId: "x", predicate: "knew", objectId: "y", current: false, validAt: "2020-01-01", invalidAt: "2020-06-01" }],
+    };
+    const msg = asOfEmptyHint(gapped, Date.parse("2021-01-01"));
+    expect(msg).toBe("No Facts were valid as of 2021-01-01.");
+  });
+
+  it("handles a snapshot whose Facts carry no valid_at at all", () => {
+    const undatable: Snapshot = {
+      entities: [{ id: "zach", name: "Zach" }, { id: "carol", name: "Carol" }],
+      facts: [{ id: "f3", subjectId: "zach", predicate: "knows", objectId: "carol", current: true, validAt: null, invalidAt: null }],
+    };
+    expect(asOfEmptyHint(undatable, Date.parse("2024-01-01"))).toContain("none carry a valid-from date");
+  });
+
+  it("returns null when not in as-of mode (NaN instant)", () => {
+    expect(asOfEmptyHint(snapshot, Number.NaN)).toBeNull();
   });
 });
