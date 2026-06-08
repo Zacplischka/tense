@@ -10,8 +10,9 @@
  *
  * This test re-runs the exact offline pipeline `pnpm eval:report` uses (stub
  * extraction + bag-of-words embeddings, the non-`llm-only` scenarios) and asserts
- * the freshly-rendered markdown is identical to the committed file. It fails loudly
- * with the one command that fixes it, so the snapshot can never go stale unnoticed.
+ * the freshly-rendered markdown — and the accuracy chart SVG — are identical to the
+ * committed files. It fails loudly with the one command that fixes it, so neither
+ * snapshot can go stale unnoticed.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -26,6 +27,7 @@ import { defaultPredicateRegistry } from "../src/supersession/registry.js";
 import { GOLD_SCENARIOS } from "../eval/gold.js";
 import { runEval, type HarnessDeps } from "../eval/harness.js";
 import { renderResultsMarkdown } from "../eval/report.js";
+import { renderAccuracyChartSvg } from "../eval/chart.js";
 
 const pool = new pg.Pool({ connectionString: TEST_DATABASE_URL });
 const deps: HarnessDeps = {
@@ -41,12 +43,15 @@ const deps: HarnessDeps = {
 const scenarios = GOLD_SCENARIOS.filter((s) => !s.tags.includes("llm-only"));
 
 const committedPath = fileURLToPath(new URL("../eval/RESULTS.md", import.meta.url));
+const committedSvgPath = fileURLToPath(new URL("../docs/media/accuracy.svg", import.meta.url));
 
 let rendered: string;
+let renderedSvg: string;
 
 beforeAll(async () => {
   const report = await runEval(deps, { scenarios });
   rendered = renderResultsMarkdown(report);
+  renderedSvg = renderAccuracyChartSvg(report);
 }, 60_000);
 
 afterAll(async () => {
@@ -59,6 +64,14 @@ describe("committed eval/RESULTS.md is in sync with the offline eval", () => {
     expect(
       rendered,
       "eval/RESULTS.md is stale — regenerate it with `pnpm eval:report` and commit the result.",
+    ).toBe(committed);
+  });
+
+  it("docs/media/accuracy.svg is in sync with the offline eval", () => {
+    const committed = readFileSync(committedSvgPath, "utf8");
+    expect(
+      renderedSvg,
+      "docs/media/accuracy.svg is stale — regenerate it with `pnpm eval:report` and commit the result.",
     ).toBe(committed);
   });
 });

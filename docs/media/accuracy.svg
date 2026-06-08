@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 404" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Temporal-QA accuracy: Tense scores 100.0% vs the fair vector baseline's 0.0% on the 5 point-in-time questions, and 100.0% vs 45.5% across all 11 questions.">
+  <rect x="0" y="0" width="760" height="404" fill="#ffffff"/>
+
+  <!-- title -->
+  <text x="30" y="34" font-size="17" font-weight="700" fill="#0f172a">Temporal-QA accuracy &#8212; Tense vs a fair vector baseline</text>
+  <text x="30" y="55" font-size="12.5" fill="#64748b">Offline eval &#183; stub extraction + hashed embeddings &#183; no API key (<tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#0f172a">pnpm eval:offline</tspan>)</text>
+
+  <!-- legend (title row, right-aligned, clear of the plot) -->
+  <rect x="556" y="24" width="12" height="12" rx="2" fill="#4f46e5"/>
+  <text x="574" y="34" font-size="12" fill="#64748b">Tense</text>
+  <rect x="620" y="24" width="12" height="12" rx="2" fill="#94a3b8"/>
+  <text x="638" y="34" font-size="12" fill="#64748b">Vector baseline</text>
+
+  <!-- gridlines + y axis -->
+  <line x1="120" y1="300" x2="700" y2="300" stroke="#eef2f7" stroke-width="1"/><text x="108" y="304" font-size="11" fill="#94a3b8" text-anchor="end">0%</text>
+  <line x1="120" y1="250" x2="700" y2="250" stroke="#eef2f7" stroke-width="1"/><text x="108" y="254" font-size="11" fill="#94a3b8" text-anchor="end">25%</text>
+  <line x1="120" y1="200" x2="700" y2="200" stroke="#eef2f7" stroke-width="1"/><text x="108" y="204" font-size="11" fill="#94a3b8" text-anchor="end">50%</text>
+  <line x1="120" y1="150" x2="700" y2="150" stroke="#eef2f7" stroke-width="1"/><text x="108" y="154" font-size="11" fill="#94a3b8" text-anchor="end">75%</text>
+  <line x1="120" y1="100" x2="700" y2="100" stroke="#eef2f7" stroke-width="1"/><text x="108" y="104" font-size="11" fill="#94a3b8" text-anchor="end">100%</text>
+
+  <!-- bars -->
+  <rect x="230" y="100" width="60" height="200" rx="3" fill="#4f46e5"/><text x="260" y="91" font-size="15" font-weight="700" fill="#4f46e5" text-anchor="middle">100.0%</text>
+  <rect x="306" y="298" width="60" height="2" fill="#94a3b8" opacity="0.45"/><text x="336" y="291" font-size="15" font-weight="700" fill="#94a3b8" text-anchor="middle">0.0%</text>
+  <rect x="470" y="100" width="60" height="200" rx="3" fill="#4f46e5"/><text x="500" y="91" font-size="15" font-weight="700" fill="#4f46e5" text-anchor="middle">100.0%</text>
+  <rect x="546" y="209.0909090909091" width="60" height="90.9090909090909" rx="3" fill="#94a3b8"/><text x="576" y="200.0909090909091" font-size="15" font-weight="700" fill="#94a3b8" text-anchor="middle">45.5%</text>
+
+  <!-- group labels -->
+  <text x="298" y="324" font-size="13.5" font-weight="700" fill="#0f172a" text-anchor="middle">Point-in-time (5)</text>
+  <text x="298" y="342" font-size="11.5" fill="#64748b" text-anchor="middle">answer changed over time</text>
+  <text x="538" y="324" font-size="13.5" font-weight="700" fill="#0f172a" text-anchor="middle">All questions (11)</text>
+  <text x="538" y="342" font-size="11.5" fill="#64748b" text-anchor="middle">includes the &#8220;now&#8221; questions</text>
+
+  <!-- caption -->
+  <text x="30" y="378" font-size="12.5" fill="#475569">The baseline competes on the &#8220;now&#8221; questions &#8212; it loses precisely the 5 whose answer changed over</text>
+  <text x="30" y="396" font-size="12.5" fill="#475569">time, where recency can&#8217;t help. <tspan fill="#16a34a" font-weight="600">That gap is the bi-temporal model.</tspan></text>
+</svg>

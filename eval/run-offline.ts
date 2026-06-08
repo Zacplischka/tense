@@ -34,6 +34,7 @@ import { BagOfWordsProvider } from "./bag-of-words-provider.js";
 import { GOLD_SCENARIOS } from "./gold.js";
 import { runEval } from "./harness.js";
 import { renderQaBreakdown, renderResultsMarkdown } from "./report.js";
+import { renderAccuracyChartSvg } from "./chart.js";
 
 const EVAL_DB_URL =
   process.env.TENSE_EVAL_DATABASE_URL ?? "postgres://postgres:tense@localhost:5432/tense_eval";
@@ -86,7 +87,9 @@ async function main(): Promise<void> {
   if (process.argv.includes("--write")) {
     const out = fileURLToPath(new URL("./RESULTS.md", import.meta.url));
     writeFileSync(out, renderResultsMarkdown(r));
-    console.log(`\nWrote eval/RESULTS.md (committed reviewer snapshot).`);
+    const svg = fileURLToPath(new URL("../docs/media/accuracy.svg", import.meta.url));
+    writeFileSync(svg, renderAccuracyChartSvg(r));
+    console.log(`\nWrote eval/RESULTS.md + docs/media/accuracy.svg (committed reviewer snapshot).`);
   }
 }
 
