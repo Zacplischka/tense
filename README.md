@@ -175,6 +175,21 @@ Full reasoning: [ADR 0001](./docs/adr/0001-hand-built-temporal-graph-on-postgres
 [ADR 0002](./docs/adr/0002-bitemporal-facts-cardinality-supersession.md),
 [ADR 0003](./docs/adr/0003-dspy-offline-prompt-optimizer.md).
 
+### Decision records
+
+The non-obvious calls — and the alternatives rejected — are written down. Full
+index with the crux of each: [`docs/adr/`](./docs/adr/README.md).
+
+| ADR | Decision |
+|---|---|
+| [0001](./docs/adr/0001-hand-built-temporal-graph-on-postgres.md) | Hand-built temporal graph on Postgres — no Graphiti, no graph DB |
+| [0002](./docs/adr/0002-bitemporal-facts-cardinality-supersession.md) | Bi-temporal Facts with two-path supersession (cardinality + LLM-judged) |
+| [0003](./docs/adr/0003-dspy-offline-prompt-optimizer.md) | DSPy as an offline prompt optimizer; ship static compiled prompts |
+| [0004](./docs/adr/0004-viewer-hosts-ingestion-write-path.md) | Viewer hosts the ingestion write-path (one process, one `remember` seam) |
+| [0005](./docs/adr/0005-reaffirmation-facts-cite-multiple-sources.md) | Reaffirmation: a Fact may cite multiple Sources instead of duplicating |
+| [0006](./docs/adr/0006-introspection-and-preview-surface.md) | Read-only introspection + dry-run `preview` surface |
+| [0007](./docs/adr/0007-ingest-assumes-a-single-writer.md) | Ingest assumes a single writer — concurrency model documented up front |
+
 ## Quickstart
 
 Requires Docker and Node ≥ 20 (with [pnpm](https://pnpm.io)).
