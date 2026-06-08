@@ -36,8 +36,12 @@ cannot model. The rows below it are the supporting evidence (extraction and
 supersession quality), measured over all 10 scenarios.
 
 Reproduce with `pnpm eval` — it prints those same denominators (`all 11`,
-`point-in-time (5)`), so every number above reconciles against a live run. No
-API key? `pnpm eval:offline` reproduces the headline row with **no spend** —
+`point-in-time (5)`), so every number above reconciles against a live run. Want
+the numbers without running anything? [`eval/RESULTS.md`](./eval/RESULTS.md) is a
+committed, byte-identical snapshot with a **per-question breakdown** — every
+point-in-time question, its `as_of`, and gold vs Tense vs baseline, so you can see
+*which* answers the baseline gets wrong and why (it returns the most-recent value).
+No API key? `pnpm eval:offline` reproduces the headline row with **no spend** —
 stub extraction plus hashed bag-of-words embeddings, Postgres only — printing the
 same **5/5 point-in-time win (100% vs 0%)**, byte-identical every run. It omits
 only the one LLM-judged cross-Predicate scenario (which needs a model), so the

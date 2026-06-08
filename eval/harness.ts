@@ -16,6 +16,19 @@ export interface HarnessDeps extends RememberDeps {
   pool: pg.Pool;
 }
 
+/** One QA question with the gold answer and what each system actually returned. */
+export interface QaItem {
+  scenario: string;
+  question: string;
+  /** Point-in-time the question is asked at (`null` = "now" / Current). */
+  asOf: string | null;
+  gold: string;
+  tense: string | null;
+  baseline: string | null;
+  /** True when the gold answer differs from the latest value (the headline rows). */
+  changed: boolean;
+}
+
 export interface EvalReport {
   scenarios: number;
   tripleF1: number;
@@ -28,6 +41,8 @@ export interface EvalReport {
     overall: { tense: number; baseline: number };
     /** THE HEADLINE: accuracy on point-in-time questions whose answer changed. */
     changedOverTime: { tense: number; baseline: number };
+    /** Every QA question with gold vs Tense vs baseline — the transparency rows. */
+    items: QaItem[];
   };
 }
 
@@ -48,6 +63,7 @@ export async function runEval(
   const actualPool: FactState[] = [];
   const tenseQa: Array<{ gold: string; got: string | null; changed: boolean }> = [];
   const baselineQa: Array<{ gold: string; got: string | null; changed: boolean }> = [];
+  const items: QaItem[] = [];
 
   for (const scenario of scenarios) {
     await deps.pool.query("TRUNCATE facts, entities, sources RESTART IDENTITY CASCADE");
@@ -74,12 +90,24 @@ export async function runEval(
     for (const qa of GOLD_QA.filter((q) => q.scenario === scenario.name)) {
       const asOf = qa.asOf ? new Date(qa.asOf) : null;
       const tenseTop = (await recall({ store: deps.store, provider: deps.provider }, qa.question, { asOf }))[0];
-      tenseQa.push({ gold: qa.answer, got: tenseTop?.object ?? null, changed: qa.changedOverTime });
+      const tenseAns = tenseTop?.object ?? null;
+      tenseQa.push({ gold: qa.answer, got: tenseAns, changed: qa.changedOverTime });
 
+      let baseAns: string | null = null;
       if (includeBaseline && deps.provider) {
-        const baseAns = await baselineAnswer(deps.store, deps.provider, qa.question);
+        baseAns = await baselineAnswer(deps.store, deps.provider, qa.question);
         baselineQa.push({ gold: qa.answer, got: baseAns, changed: qa.changedOverTime });
       }
+
+      items.push({
+        scenario: scenario.name,
+        question: qa.question,
+        asOf: qa.asOf,
+        gold: qa.answer,
+        tense: tenseAns,
+        baseline: includeBaseline ? baseAns : null,
+        changed: qa.changedOverTime,
+      });
     }
   }
 
@@ -98,6 +126,7 @@ export async function runEval(
         tense: qaAccuracy(changed(tenseQa)),
         baseline: qaAccuracy(changed(baselineQa)),
       },
+      items,
     },
   };
 }

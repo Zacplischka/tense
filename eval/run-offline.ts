@@ -22,6 +22,8 @@
  * demo or test databases.
  */
 import "../src/env.js";
+import { writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { ensureDatabase, migrate } from "../src/db/migrate.js";
 import { TemporalGraphStore } from "../src/db/store.js";
@@ -31,6 +33,7 @@ import { StubExtractor } from "../src/extraction/stub.js";
 import { BagOfWordsProvider } from "./bag-of-words-provider.js";
 import { GOLD_SCENARIOS } from "./gold.js";
 import { runEval } from "./harness.js";
+import { renderQaBreakdown, renderResultsMarkdown } from "./report.js";
 
 const EVAL_DB_URL =
   process.env.TENSE_EVAL_DATABASE_URL ?? "postgres://postgres:tense@localhost:5432/tense_eval";
@@ -75,7 +78,16 @@ async function main(): Promise<void> {
     `HEADLINE — point-in-time (${r.qa.changedCount}): Tense ${pct(r.qa.changedOverTime.tense)}  vs  baseline ${pct(r.qa.changedOverTime.baseline)}`,
   );
   console.log("──────────────────────────────────────────────────────────");
+  console.log("");
+  console.log(renderQaBreakdown(r));
+  console.log("");
   console.log("Deterministic: these numbers are identical on every run (no model, no network).");
+
+  if (process.argv.includes("--write")) {
+    const out = fileURLToPath(new URL("./RESULTS.md", import.meta.url));
+    writeFileSync(out, renderResultsMarkdown(r));
+    console.log(`\nWrote eval/RESULTS.md (committed reviewer snapshot).`);
+  }
 }
 
 main().catch((err) => {

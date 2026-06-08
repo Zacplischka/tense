@@ -51,4 +51,22 @@ describe("eval harness (deterministic: stub extraction + fair baseline)", () => 
     // On current questions both should do well -> baseline isn't a strawman.
     expect(report.qa.overall.baseline).toBeGreaterThan(0);
   });
+
+  it("exposes a per-question breakdown that reconciles with the aggregates", () => {
+    // One row per QA question, and the changed-count matches the headline denominator.
+    expect(report.qa.items).toHaveLength(report.qa.count);
+    expect(report.qa.items.filter((i) => i.changed)).toHaveLength(report.qa.changedCount);
+
+    // Tense is 100% on the point-in-time rows -> every changed row matches gold.
+    const changed = report.qa.items.filter((i) => i.changed);
+    for (const i of changed) {
+      expect(i.tense?.toLowerCase()).toBe(i.gold.toLowerCase());
+    }
+    // The aggregate "0% baseline on point-in-time" must mean every baseline row is wrong.
+    if (report.qa.changedOverTime.baseline === 0) {
+      for (const i of changed) {
+        expect(i.baseline?.toLowerCase() ?? null).not.toBe(i.gold.toLowerCase());
+      }
+    }
+  });
 });
