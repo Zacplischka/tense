@@ -19,17 +19,26 @@ On point-in-time questions whose answer changed over time — the one place a
 recency-sorted vector store cannot win — measured against a **fair** vector
 baseline (same Sources, same embeddings, recency tiebreak allowed):
 
-| Metric (full gold set, live extraction) | Tense | Fair vector baseline |
+| Metric (10-scenario gold set, live extraction) | Tense | Fair vector baseline |
 |---|---|---|
-| **Temporal-QA on point-in-time questions** | **100%** | **0%** |
-| Temporal-QA, all questions | 100% | 55% |
+| **Temporal-QA — point-in-time (5 questions)** | **100%** | **0%** |
+| Temporal-QA — all questions (11) | 100% | 55% |
 | Supersession precision / recall | 100% / 100% | — |
 | False-supersession rate | 0% | — |
 | Extraction triple-F1 / valid_at accuracy | 100% / 100% | — |
 
-Reproduce with `pnpm eval`. The baseline is the strongest naive version, not a
-strawman — it just has no bi-temporal model, so for a past `as_of` it returns the
-most-recent answer and is wrong.
+The point-in-time row is the headline: 5 questions whose answer changed over
+time, where a recency-sorted vector store is structurally wrong. The baseline
+still gets 6/11 overall (the "now" questions) — it loses precisely on the 5 it
+cannot model. The rows below it are the supporting evidence (extraction and
+supersession quality), measured over all 10 scenarios.
+
+Reproduce with `pnpm eval` — it prints those same denominators (`all 11`,
+`point-in-time (5)`), so every number above reconciles against a live run. The
+baseline is the strongest naive version, not a strawman: it just has no
+bi-temporal model, so for a past `as_of` it returns the most-recent answer and is
+wrong. The gold set is small and honest about it — expansion to ~30 scenarios is
+tracked in [`eval/gold.ts`](./eval/gold.ts).
 
 ![Live grey-out: a superseded edge dashes while the new one lights up](docs/media/greyout.gif)
 
