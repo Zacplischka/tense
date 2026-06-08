@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Temporal memory for AI agents — knows which version is true.",
   "license": "MIT",
+  "packageManager": "pnpm@10.15.0",
   "bin": {
     "tense": "dist/server.js"
   },
