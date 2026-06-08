@@ -131,19 +131,23 @@ export function createMcpServer(deps: RememberDeps): McpServer {
     async ({ query, as_of, predicate, limit, min_reinforced, include_sources, include_source_text }) => {
       const asOf = as_of ? new Date(as_of) : null;
       if (as_of && Number.isNaN(asOf!.getTime())) return errorResult(`invalid as_of date: ${as_of}`);
-      const facts = await recall(
-        { store: deps.store, provider: deps.provider },
-        query,
-        {
-          asOf,
-          predicate,
-          limit,
-          minReinforced: min_reinforced,
-          includeSources: include_sources,
-          includeSourceText: include_source_text,
-        },
-      );
-      return jsonResult(facts);
+      try {
+        const facts = await recall(
+          { store: deps.store, provider: deps.provider },
+          query,
+          {
+            asOf,
+            predicate,
+            limit,
+            minReinforced: min_reinforced,
+            includeSources: include_sources,
+            includeSourceText: include_source_text,
+          },
+        );
+        return jsonResult(facts);
+      } catch (err) {
+        return toolError("recall", err);
+      }
     },
   );
 
@@ -162,7 +166,11 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ entity, predicate }) => {
-      return jsonResult(await history({ store: deps.store, resolver: deps.resolver }, entity, predicate));
+      try {
+        return jsonResult(await history({ store: deps.store, resolver: deps.resolver }, entity, predicate));
+      } catch (err) {
+        return toolError("history", err);
+      }
     },
   );
 

@@ -141,4 +141,30 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     const recalled = payload(await client.callTool({ name: "recall", arguments: { query: "" } }));
     expect(recalled).toEqual([]);
   });
+
+  it("a read-path store failure returns an isError result and the server stays alive", async () => {
+    // The module contract: errors are returned as isError results, never thrown —
+    // so a transient store/DB fault degrades one call, not the whole server. The
+    // write path proves this above; this locks the same guard for the read tools.
+    const deps = depsWith(new StubExtractor());
+    deps.store.rankByKeyword = async () => {
+      throw new Error("connection terminated unexpectedly");
+    };
+    deps.resolver.resolve = async () => {
+      throw new Error("connection terminated unexpectedly");
+    };
+    const client = await connect(deps);
+
+    const recallRes: any = await client.callTool({ name: "recall", arguments: { query: "Zach" } });
+    expect(recallRes.isError).toBe(true);
+    expect(recallRes.content[0].text).toMatch(/recall failed: connection terminated/);
+
+    const historyRes: any = await client.callTool({ name: "history", arguments: { entity: "Zach" } });
+    expect(historyRes.isError).toBe(true);
+    expect(historyRes.content[0].text).toMatch(/history failed: connection terminated/);
+
+    // The server is unharmed: a tool whose store call is healthy still answers.
+    const stats = payload(await client.callTool({ name: "stats", arguments: {} }));
+    expect(stats.facts).toMatchObject({ total: 0 });
+  });
 });
