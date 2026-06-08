@@ -555,6 +555,10 @@ hosting/multi-tenancy/auth, and a draggable, animated timeline slider — the vi
 ships point-in-time as-of as a date picker (rewind to any past date, above), not a
 dragged-through animation. See the [PRD](./.scratch/tense/PRD.md).
 
+The trust boundaries this scope *does* defend — untrusted Source text into the
+graph, agent inputs into SQL, secret handling — and the ones it deliberately
+doesn't, are stated with the backing code in [`SECURITY.md`](./SECURITY.md).
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).
