@@ -30,6 +30,25 @@ measurable at all):
 - **Precision 100.0%** — 7 / 7 closures correct.
 - **False-supersession 0.0%** — 0 / 13 still-true Facts closed.
 
+## What the gold set deliberately tests
+
+A round 100% invites the obvious question — *is the eval rigged to pass?* So the
+gold set is built to **break** Tense, not flatter it: every one of these
+9 scenarios carries at least one adversarial property below, and
+3 are "still-true" cases whose Facts must stay Current — exactly what a
+memory that over-supersedes gets *wrong*. Tags are declared per scenario in
+[`eval/gold.ts`](./gold.ts), so this matrix can't drift from what was run.
+
+| Edge case | What a bug here would look like | Scenarios |
+|---|---|---|
+| **Answer changed over time** | the gold answer differs from the latest value, so a recency-sorted vector baseline is structurally wrong at a past `as_of` — the headline cases | 3 |
+| **Supersession fires** | a single-valued Predicate gets a new value, so the prior Fact must close — never duplicate, never delete | 6 |
+| **Must NOT supersede** | Facts that have to stay Current — these make false-supersession measurable; a memory that over-closes fails precisely here | 3 |
+| **Out-of-order ingestion** | the older Fact arrives second and must be born already-closed, never supersede the newer one | 1 |
+| **Tied valid_at** | two Facts share a valid_at, so only a transaction-time tiebreak can pick the winner | 1 |
+| **Null valid_at** | a Source carries no date, so supersession must fall back to transaction time | 1 |
+| **Multi-valued Predicate** | an accumulating relation (knows, contributed-to) where new values add and must never replace | 2 |
+
 ## The headline, question by question
 
 The 5 point-in-time questions whose gold answer **changed over

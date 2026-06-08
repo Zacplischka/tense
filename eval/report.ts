@@ -11,6 +11,7 @@
  * the same function feeds both the terminal table and the committed `RESULTS.md`.
  */
 import type { EvalReport, QaItem } from "./harness.js";
+import type { GoldTag } from "./gold.js";
 
 const pct = (x: number): string => `${(x * 100).toFixed(1)}%`;
 const mark = (item: QaItem, got: string | null): string =>
@@ -29,6 +30,93 @@ function qaTable(items: QaItem[]): string {
       `${dash(i.tense)} ${mark(i, i.tense)} | ${dash(i.baseline)} ${mark(i, i.baseline)} |`,
   );
   return [header, ...rows].join("\n");
+}
+
+/**
+ * The "what would catch a bug" gloss for each gold-set tag, plus the stable
+ * display order. Kept here (presentation), not in the gold data — the harness only
+ * supplies which tags are present and which scenarios carry them. `llm-only` is a
+ * path marker, not an edge case, so it is folded into `cross-predicate` and omitted.
+ */
+const TAG_ORDER: GoldTag[] = [
+  "changed-over-time",
+  "supersession",
+  "still-true",
+  "out-of-order",
+  "tied-valid-at",
+  "null-valid-at",
+  "multi-valued",
+  "cross-predicate",
+];
+const TAG_GLOSS: Partial<Record<GoldTag, { label: string; catches: string }>> = {
+  "changed-over-time": {
+    label: "Answer changed over time",
+    catches:
+      "the gold answer differs from the latest value, so a recency-sorted vector baseline is structurally wrong at a past `as_of` — the headline cases",
+  },
+  supersession: {
+    label: "Supersession fires",
+    catches: "a single-valued Predicate gets a new value, so the prior Fact must close — never duplicate, never delete",
+  },
+  "still-true": {
+    label: "Must NOT supersede",
+    catches:
+      "Facts that have to stay Current — these make false-supersession measurable; a memory that over-closes fails precisely here",
+  },
+  "out-of-order": {
+    label: "Out-of-order ingestion",
+    catches: "the older Fact arrives second and must be born already-closed, never supersede the newer one",
+  },
+  "tied-valid-at": {
+    label: "Tied valid_at",
+    catches: "two Facts share a valid_at, so only a transaction-time tiebreak can pick the winner",
+  },
+  "null-valid-at": {
+    label: "Null valid_at",
+    catches: "a Source carries no date, so supersession must fall back to transaction time",
+  },
+  "multi-valued": {
+    label: "Multi-valued Predicate",
+    catches: "an accumulating relation (knows, contributed-to) where new values add and must never replace",
+  },
+  "cross-predicate": {
+    label: "Cross-Predicate contradiction",
+    catches: "a conflict across different Predicates (works-at vs left), resolved by the LLM judge",
+  },
+};
+
+/**
+ * A coverage matrix over the gold-set tags: edge case · what a bug there looks
+ * like · how many scenarios carry it. A round 100% invites "is the eval rigged to
+ * pass?"; this answers it by showing the gold set is built to *break* Tense.
+ */
+function coverageSection(r: EvalReport): string {
+  const byTag = new Map(r.coverage.map((c) => [c.tag, c.scenarios]));
+  // Curated order first, then any present-but-uncatalogued tag (never silently
+  // drop a dimension), excluding the `llm-only` path marker.
+  const tags = [
+    ...TAG_ORDER.filter((t) => byTag.has(t)),
+    ...r.coverage.map((c) => c.tag).filter((t) => !TAG_ORDER.includes(t) && t !== "llm-only"),
+  ];
+  const rows = tags.map((tag) => {
+    const n = byTag.get(tag)?.length ?? 0;
+    const gloss = TAG_GLOSS[tag];
+    return `| **${gloss?.label ?? tag}** | ${gloss?.catches ?? tag} | ${n} |`;
+  });
+  const stillTrue = byTag.get("still-true")?.length ?? 0;
+  return `## What the gold set deliberately tests
+
+A round 100% invites the obvious question — *is the eval rigged to pass?* So the
+gold set is built to **break** Tense, not flatter it: every one of these
+${r.scenarios} scenarios carries at least one adversarial property below, and
+${stillTrue} are "still-true" cases whose Facts must stay Current — exactly what a
+memory that over-supersedes gets *wrong*. Tags are declared per scenario in
+[\`eval/gold.ts\`](./gold.ts), so this matrix can't drift from what was run.
+
+| Edge case | What a bug here would look like | Scenarios |
+|---|---|---|
+${rows.join("\n")}
+`;
 }
 
 /**
@@ -75,6 +163,7 @@ measurable at all):
 - **Precision ${pct(r.supersession.precision)}** — ${precisionCount}.
 - **False-supersession ${pct(r.supersession.falseSupersessionRate)}** — ${falseCount}.
 
+${coverageSection(r)}
 ## The headline, question by question
 
 The ${r.qa.changedCount} point-in-time questions whose gold answer **changed over

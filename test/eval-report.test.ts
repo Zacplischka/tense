@@ -39,6 +39,11 @@ const report: EvalReport = {
       qa({ asOf: "2024-03-01", gold: "Alice", tense: "Alice", baseline: "Bob", changed: true }),
     ],
   },
+  coverage: [
+    { tag: "supersession", scenarios: ["reports-to org change (dated)"] },
+    { tag: "changed-over-time", scenarios: ["reports-to org change (dated)"] },
+    { tag: "still-true", scenarios: ["multi-valued knows (still true, must not supersede)"] },
+  ],
 };
 
 describe("eval report renderer (pure, deterministic)", () => {
@@ -73,6 +78,19 @@ describe("eval report renderer (pure, deterministic)", () => {
 
   it("is byte-identical across renders (deterministic — no clock/random)", () => {
     expect(renderResultsMarkdown(report)).toBe(renderResultsMarkdown(report));
+  });
+
+  it("renders the coverage matrix in the curated order with per-tag scenario counts", () => {
+    const md = renderResultsMarkdown(report);
+    expect(md).toContain("## What the gold set deliberately tests");
+    // changed-over-time precedes supersession (TAG_ORDER), regardless of input order.
+    const changedIdx = md.indexOf("**Answer changed over time**");
+    const supersedeIdx = md.indexOf("**Supersession fires**");
+    expect(changedIdx).toBeGreaterThan(-1);
+    expect(changedIdx).toBeLessThan(supersedeIdx);
+    // Count comes from the coverage entry, and the still-true tally is called out.
+    expect(md).toContain("| **Must NOT supersede** |");
+    expect(md).toContain('1 are "still-true" cases');
   });
 
   it("terminal breakdown shows each point-in-time question with both answers", () => {

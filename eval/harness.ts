@@ -2,7 +2,7 @@ import type pg from "pg";
 import { remember, type RememberDeps } from "../src/pipeline.js";
 import { recall } from "../src/retrieval/recall.js";
 import { baselineAnswer } from "./baseline.js";
-import { GOLD_QA, GOLD_SCENARIOS, type GoldScenario } from "./gold.js";
+import { GOLD_QA, GOLD_SCENARIOS, type GoldScenario, type GoldTag } from "./gold.js";
 import {
   qaAccuracy,
   supersessionMetrics,
@@ -54,6 +54,13 @@ export interface EvalReport {
     /** Every QA question with gold vs Tense vs baseline — the transparency rows. */
     items: QaItem[];
   };
+  /**
+   * Which adversarial edge cases the run's gold scenarios deliberately exercise —
+   * one entry per tag present across the scenarios, with the scenarios carrying it.
+   * Surfaces that the gold set is built to *break* Tense (over-supersession,
+   * out-of-order, tied valid_at, …), not just flatter it.
+   */
+  coverage: Array<{ tag: GoldTag; scenarios: string[] }>;
 }
 
 /**
@@ -123,6 +130,15 @@ export async function runEval(
 
   const changed = (items: typeof tenseQa) => items.filter((i) => i.changed);
 
+  // Coverage matrix: every tag present across the run's scenarios, each with the
+  // scenarios that carry it. Derived from the gold data, so it can never drift from
+  // what was actually evaluated.
+  const presentTags = Array.from(new Set(scenarios.flatMap((s) => s.tags)));
+  const coverage = presentTags.map((tag) => ({
+    tag,
+    scenarios: scenarios.filter((s) => s.tags.includes(tag)).map((s) => s.name),
+  }));
+
   return {
     scenarios: scenarios.length,
     tripleF1: tripleF1(expectedPool, actualPool).f1,
@@ -138,5 +154,6 @@ export async function runEval(
       },
       items,
     },
+    coverage,
   };
 }

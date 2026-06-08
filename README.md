@@ -80,8 +80,13 @@ tiebreak ranks the most-recent answer first and is wrong. That its miss is an
 honest ranking choice (not blindness to the old Fact) is regression-tested in
 [`test/eval-baseline-fairness.integration.test.ts`](./test/eval-baseline-fairness.integration.test.ts).
 
-**Honest about scale.** The gold set is small — expansion to ~30 scenarios is
-tracked in [`eval/gold.ts`](./eval/gold.ts).
+**Small, but adversarial by design.** The gold set is small — expansion to ~30
+scenarios is tracked in [`eval/gold.ts`](./eval/gold.ts) — but it is built to
+*break* Tense, not flatter it: every scenario carries a labelled edge case
+(out-of-order ingestion, tied `valid_at`, null `valid_at`, and "still-true" Facts
+that must **not** be superseded). [`eval/RESULTS.md`](./eval/RESULTS.md) renders
+that coverage as a matrix straight from the gold-set tags, so a 100% reads as
+"passed the hard cases," not "only tested the easy ones."
 
 </details>
 
