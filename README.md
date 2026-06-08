@@ -36,12 +36,22 @@ cannot model. The rows below it are the supporting evidence (extraction and
 supersession quality), measured over all 10 scenarios.
 
 Reproduce with `pnpm eval` — it prints those same denominators (`all 11`,
+`point-in-time (5)`), so every number above reconciles against a live run. No API
+key needed: `pnpm eval:offline` reproduces the same **5/5 point-in-time win
+(100% vs 0%)** with **no spend**, byte-identical every run. The fairness of the
+baseline, the offline path, and the gold-set size are detailed below.
+
+<details>
+<summary><strong>Reproduce it — and why the baseline is fair, not a strawman</strong></summary>
+
+**Run it live.** `pnpm eval` prints those same denominators (`all 11`,
 `point-in-time (5)`), so every number above reconciles against a live run. Want
 the numbers without running anything? [`eval/RESULTS.md`](./eval/RESULTS.md) is a
 committed, byte-identical snapshot with a **per-question breakdown** — every
 point-in-time question, its `as_of`, and gold vs Tense vs baseline, so you can see
 *which* answers the baseline gets wrong and why (it returns the most-recent value).
-No API key? `pnpm eval:offline` reproduces the headline row with **no spend** —
+
+**No API key?** `pnpm eval:offline` reproduces the headline row with **no spend** —
 stub extraction plus hashed bag-of-words embeddings, Postgres only — printing the
 same **5/5 point-in-time win (100% vs 0%)**, byte-identical every run. It runs 9
 of the 10 scenarios (skipping the lone LLM-judged cross-Predicate case, which
@@ -51,13 +61,19 @@ because of that scenario but because the hashed embeddings are weaker: on the on
 tied-`valid_at` "now" question (Tess), where both Facts share a `valid_at` so
 recency can't break the tie, the weaker embedding ranks the wrong Fact first — a
 question real embeddings get right. The headline point-in-time row is identical
-either way. The baseline is the strongest naive version, not a strawman: its candidate pool
+either way.
+
+**The baseline is the strongest naive version, not a strawman.** Its candidate pool
 **includes the superseded Fact**, so the historically-correct answer is right in
 front of it — it just has no bi-temporal model, so for a past `as_of` its recency
 tiebreak ranks the most-recent answer first and is wrong. That its miss is an
 honest ranking choice (not blindness to the old Fact) is regression-tested in
-[`test/eval-baseline-fairness.integration.test.ts`](./test/eval-baseline-fairness.integration.test.ts). The gold set is small and honest about it — expansion to ~30 scenarios is
+[`test/eval-baseline-fairness.integration.test.ts`](./test/eval-baseline-fairness.integration.test.ts).
+
+**Honest about scale.** The gold set is small — expansion to ~30 scenarios is
 tracked in [`eval/gold.ts`](./eval/gold.ts).
+
+</details>
 
 ![Live grey-out: a superseded edge dashes while the new one lights up](docs/media/greyout.gif)
 
