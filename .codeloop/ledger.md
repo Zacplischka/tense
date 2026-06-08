@@ -1528,3 +1528,22 @@ marginal (reinforcedBy ranking, viewer polish, isCurrent cruft), or speculative
   (13/53). The match-set reuses the already-tested filter predicate. → pass.
 - **Commit**: 6cdc56d
 - **Saturation**: UX active (V=3) — no flag change.
+
+### Portfolio heartbeat (20260609-025708) · tests (engineering quality)
+- **Change**: added `test/supersession-resolver.invariants.test.ts` — a deterministic
+  property/fuzz suite (seeded mulberry32 PRNG, no new deps) running 5000 random
+  scenarios against the pure resolver's spec, plus a multi-candidate example. Closes
+  the iter-60 backlog item "Homegrown invariant/fuzz suite over the pure supersession
+  resolver". Exercises the **multi-candidate** path (a subject with several Current
+  Facts on one Predicate) that the example suite never reached.
+- **Invariants locked**: purity (no input mutation), determinism, direction↔shape
+  (born-Current xor born-expired), cardinality gate, out-of-order branch iff an
+  existing Fact is provably newer, incoming-win closes ALL candidates, no
+  duplicate/unknown close ids, expiredAt==now, invalidAt = incoming valid_at or
+  now-fallback, no negative-length intervals.
+- **Mutation-tested**: breaking the resolver to close only the first candidate fails
+  the suite with a reproducible printed input (`expected 1 to be 3`).
+- **Files**: test/supersession-resolver.invariants.test.ts (new), .codeloop/ledger.md.
+- **Verification**: `npm run typecheck` ✓ · `npm run lint` ✓ · targeted vitest ✓
+  (14 resolver/decide tests across 3 files; new suite = 5002 assertions in ~230ms).
+- **Visual artifact**: ~/.hermes/logs/.../20260609-025708/invariant-suite-card.png.
