@@ -23,6 +23,7 @@
     "eval": "tsx eval/run.ts",
     "eval:offline": "tsx eval/run-offline.ts",
     "eval:report": "tsx eval/run-offline.ts --write",
+    "bench": "tsx eval/bench.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "typecheck": "tsc -p tsconfig.check.json",
     "lint": "eslint . --max-warnings 0",

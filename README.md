@@ -79,6 +79,33 @@ tracked in [`eval/gold.ts`](./eval/gold.ts).
 
 ![Live grey-out: a superseded edge dashes while the new one lights up](docs/media/greyout.gif)
 
+## Fast enough for the agent loop
+
+Accuracy is half the question for memory that sits in an agent's hot path; latency
+is the other half. `pnpm bench` seeds a deterministic synthetic org graph and times
+the **real read path** — temporal filter in SQL → pgvector cosine + full-text → RRF,
+the same `recall()` the MCP server serves:
+
+| Recall over a 734-Current-Fact graph (260 superseded Facts the SQL filter must exclude) | Latency |
+|---|---|
+| **p50** | **~4.5 ms** |
+| p95 | ~6 ms |
+| p99 | ~7 ms |
+
+Measured offline — no API key, hashed embeddings, Postgres only — on an Apple M4
+(200 recalls mixing Current, point-in-time `as_of`, and `lives-in` queries). The
+*corpus shape* is deterministic (734 Current Facts every run); the *latency* is
+machine-dependent, so reproduce it on your own hardware:
+
+```bash
+pnpm bench            # 400-subject corpus, 200 timed recalls
+pnpm bench 1000 500   # <subjects> <iterations>
+```
+
+Point-in-time recall stays low-single-digit milliseconds with hundreds of
+superseded Facts in the graph for the temporal filter to exclude — comfortably
+inside an agent's tool-call budget, not a batch job.
+
 ## How it works
 
 - **Fact** — a directed, typed relationship `subject → predicate → object`
@@ -440,7 +467,7 @@ src/contradiction/ LLM-judged contradiction (reuses the resolver's direction rul
 src/retrieval/     hybrid recall (RRF + temporal filter) and history
 src/mcp/, server.ts  MCP stdio adapter and entry point
 viewer/            read-mostly Next.js viewer (live grey-out + growth, drop-text ingestion)
-eval/              gold set, metrics, fair baseline, harness (pnpm eval)
+eval/              gold set, metrics, fair baseline, harness (pnpm eval), latency bench (pnpm bench)
 test/              logic unit tests + integration tests (real Postgres)
 docs/adr/          architecture decisions  ·  CONTEXT.md  domain glossary
 ```
