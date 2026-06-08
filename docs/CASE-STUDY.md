@@ -83,6 +83,7 @@ recalls over a 734-Current-Fact graph at **~4.5 ms p50 / ~7 ms p99**
 | Evaluation rigor | Adversarial [gold set](../eval/gold.ts), a *fair* baseline, [fairness](../test/eval-baseline-fairness.integration.test.ts) + [drift](../test/eval-results-snapshot.integration.test.ts) guards, keyless reproduction |
 | AI engineering | LLM extraction with a [typed prompt seam](../src/extraction/prompts.ts) and a deterministic stub double; DSPy as an [offline optimizer](./adr/0003-dspy-offline-prompt-optimizer.md), never a runtime dep |
 | Production sense | Best-effort embedding never fails a write; MCP `isError` contract; [partial-index](../README.md#how-it-works) Current; staleness banner in the viewer |
+| Engineering discipline | [226 tests across 46 spec files](../README.md#tested-against-a-real-database-not-mocks) — 28 of them integration tests against a real pgvector Postgres (not mocks), the rest pure-logic unit tests on the supersession rules; the whole `pnpm check` gate runs in CI on every push |
 | Communication | This case study, the reference README, and a live [viewer](./media/viewer.png) that animates supersession |
 
 ## Honest limits (and what's next)

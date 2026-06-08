@@ -296,6 +296,21 @@ pnpm check             # the full verify gate: typecheck · lint · build · tes
 PR, against a real pgvector Postgres service — the same image as
 `docker-compose.yml`, so the integration tests run on the real schema, not a mock.
 
+### Tested against a real database, not mocks
+
+`pnpm test` runs **226 tests across 46 spec files** (~60s, all green). The number
+isn't the point — *what* they run against is: **28 of those files are integration
+tests that exercise a real pgvector Postgres**, created and migrated per run by
+[`test/globalSetup.ts`](./test/globalSetup.ts), not an in-memory shim or a mocked
+client. The atomic supersession write (close prior + open new in one transaction),
+the point-in-time SQL filter, the RRF rank, and the MCP `isError` contract are all
+asserted end-to-end on the same schema the server serves — and on the [same
+Postgres image](./docker-compose.yml) CI runs, so a green local run and a green CI
+run mean the same thing. The other 18 are pure-logic unit tests with no I/O — the
+supersession resolver and its [invariants](./test/supersession-resolver.invariants.test.ts),
+RRF fusion, and the predicate registry — fast to run and exhaustive on the rules
+that decide whether a Fact supersedes, reaffirms, or inserts.
+
 ### Connect it to an MCP client (Claude Code / Cursor)
 
 Tense speaks MCP over stdio. Point your client at the built server:
