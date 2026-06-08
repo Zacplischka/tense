@@ -114,6 +114,36 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     expect(chain[1].retiredAt).toBeNull();
   });
 
+  it("threads include_sources / include_source_text across the MCP boundary (provenance opt-in, token-lean opt-out)", async () => {
+    // recall()'s differentiating controls are unit-tested directly, but the MCP
+    // adapter rewires them snake_case -> camelCase by hand; this locks that wiring
+    // so a transposed flag (e.g. includeSources <- include_source_text) is caught.
+    const client = await connect(depsWith(new StubExtractor()));
+    // "Zach knows Bob" asserted twice (knows is multi-valued) — a Reaffirmation, so
+    // the one Fact ends up cited by two Sources.
+    await client.callTool({ name: "remember", arguments: { text: "Zach knows Bob.", source: "s1" } });
+    await client.callTool({ name: "remember", arguments: { text: "Zach knows Bob.", source: "s2" } });
+
+    // Default: the lean common path — full Source text, no citedBy list.
+    const def = payload(await client.callTool({ name: "recall", arguments: { query: "Zach knows" } }));
+    expect(def[0].source.text).toBeTruthy();
+    expect(def[0].citedBy).toBeUndefined();
+
+    // include_sources: true attaches WHICH Sources assert each Fact, across the wire.
+    const withSources = payload(
+      await client.callTool({ name: "recall", arguments: { query: "Zach knows", include_sources: true } }),
+    );
+    const bob = withSources.find((f: any) => f.object === "Bob");
+    expect(bob.citedBy.map((s: any) => s.label).sort()).toEqual(["s1", "s2"]);
+
+    // include_source_text: false drops the Source text (id/label only) — token-lean.
+    const lean = payload(
+      await client.callTool({ name: "recall", arguments: { query: "Zach knows", include_source_text: false } }),
+    );
+    expect(lean[0].source.text).toBeUndefined();
+    expect(lean[0].source.label).toBeTruthy();
+  });
+
   it("stats tags each Predicate with its cardinality (single supersedes, multi accumulates)", async () => {
     const client = await connect(depsWith(new StubExtractor()));
     await client.callTool({ name: "remember", arguments: { text: "Zach reports to Alice." } });

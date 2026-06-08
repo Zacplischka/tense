@@ -97,9 +97,12 @@ export function createMcpServer(deps: RememberDeps): McpServer {
       title: "Recall",
       description:
         "Return ranked Facts matching the query — Current by default, or whatever " +
-        "was Current at `as_of`. Optionally scope to one `predicate` and cap the " +
-        "result count with `limit`. Each Fact includes its Source citation, " +
-        "validity interval, and `reinforcedBy` (how many Sources assert it).",
+        "was Current at `as_of`. Optionally scope to one `predicate`, cap the count " +
+        "with `limit`, or require a trust threshold with `min_reinforced` (only " +
+        "Facts asserted by at least N Sources). Each Fact includes its Source " +
+        "citation, validity interval, and `reinforcedBy` (how many Sources assert " +
+        "it); set `include_sources` to attach the full `citedBy` provenance list, " +
+        "or `include_source_text: false` for a token-lean result.",
       inputSchema: {
         query: z.string().describe("What to recall. Empty returns the temporally-filtered set."),
         as_of: z
