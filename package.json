@@ -25,6 +25,7 @@
     "eval:report": "tsx eval/run-offline.ts --write",
     "bench": "tsx eval/bench.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
+    "demo:agent": "tsx scripts/demo-agent.ts",
     "typecheck": "tsc -p tsconfig.check.json",
     "lint": "eslint . --max-warnings 0",
     "check": "npm run typecheck && npm run lint && npm run build && npm test && npm run check:viewer",

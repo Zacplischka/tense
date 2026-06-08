@@ -87,6 +87,33 @@ tracked in [`eval/gold.ts`](./eval/gold.ts).
 
 ![Live grey-out: a superseded edge dashes while the new one lights up](docs/media/greyout.gif)
 
+## See the win the way the agent does
+
+The eval scores the answers; `pnpm demo:agent` shows *why* — the literal tool
+result a model receives. For one question whose answer changed
+(`who does Zach report to?` asked `as_of=2024-03-01`), it prints what a naive
+vector memory hands the agent next to what Tense hands it, through the **same
+`recall` / baseline code paths** the eval and the MCP server use — no key, no
+network, byte-stable:
+
+```text
+✗ Naive vector memory  —  top-k cosine, recency tiebreak, no as_of
+    candidate Facts retrieved: Alice (valid 2024-01-01), Bob (valid 2024-06-01)
+    → hands the agent: Bob   [WRONG — returns the *current* value, blind to as_of]
+
+✓ Tense  —  temporal filter in SQL, then hybrid rank (the recall() the MCP server serves)
+    { "object": "Alice", "validAt": "2024-01-01", "invalidAt": "2024-06-01",
+      "current": false, "source": "org-2024q1" }
+    → hands the agent: Alice  [RIGHT — who was Current then, + validity interval + Source to cite]
+```
+
+Both Facts are in the vector store's candidate pool (it isn't blind to history) —
+it just has no `as_of` to choose between them, so recency wins and the agent is
+told the wrong thing with no signal that it's wrong. That gap is the product. The
+"now" control in the same run shows both memories agree (the baseline is fair, not
+a strawman), and the comparison is locked by
+[`test/demo-agent.integration.test.ts`](./test/demo-agent.integration.test.ts).
+
 ## Fast enough for the agent loop
 
 Accuracy is half the question for memory that sits in an agent's hot path; latency
