@@ -379,6 +379,14 @@ superseded Facts greyed/dashed, updating live as Facts change. New Entities and
 Facts glow in on a stable layout (existing nodes never move), so you can watch the
 graph *grow*.
 
+<img src="docs/media/viewer.png" alt="The Tense viewer after the org-change demo: the graph shows Zach with solid edges to Bob (reports-to), Carol (knows) and Berlin (lives-in), plus a dashed grey edge to Alice — the superseded reports-to Fact. The legend reads Current (3) / Superseded (1) beside an 'as of' date picker. Zach's detail panel lists all four Facts with their valid intervals; the superseded reports-to Alice is greyed and dated valid 2024-01-01 → 2024-06-01. The Entity index runs along the bottom." width="100%">
+
+The still above is the seeded demo at rest: solid Current edges, the **dashed grey
+`reports-to → Alice`** edge that was superseded, and the detail panel spelling out
+each Fact's valid interval — including Alice's closed `2024-01-01 → 2024-06-01`. Set
+the **as-of** date picker to a past date and the graph rewinds to whatever was
+Current *then* (the header flips to *Valid then* with a one-click *Live* reset).
+
 #### Reproduce the grey-out demo
 
 The GIF above is one command per beat — and it needs **no API key**: the seed
