@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
 import { TEST_DATABASE_URL } from "./globalSetup.js";
-import { BagOfWordsProvider } from "./helpers/bag-of-words-provider.js";
+import { BagOfWordsProvider } from "../eval/bag-of-words-provider.js";
 import { TemporalGraphStore } from "../src/db/store.js";
 import { StubExtractor } from "../src/extraction/stub.js";
 import { EntityResolver } from "../src/resolution/entity-resolver.js";

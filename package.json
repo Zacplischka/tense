@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "tsx eval/run.ts",
+    "eval:offline": "tsx eval/run-offline.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "typecheck": "tsc -p tsconfig.check.json",
     "lint": "eslint . --max-warnings 0",

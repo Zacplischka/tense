@@ -34,7 +34,12 @@ cannot model. The rows below it are the supporting evidence (extraction and
 supersession quality), measured over all 10 scenarios.
 
 Reproduce with `pnpm eval` — it prints those same denominators (`all 11`,
-`point-in-time (5)`), so every number above reconciles against a live run. The
+`point-in-time (5)`), so every number above reconciles against a live run. No
+API key? `pnpm eval:offline` reproduces the headline row with **no spend** —
+stub extraction plus hashed bag-of-words embeddings, Postgres only — printing the
+same **5/5 point-in-time win (100% vs 0%)**, byte-identical every run. It omits
+only the one LLM-judged cross-Predicate scenario (which needs a model), so the
+overall baseline shifts slightly; the headline is fully covered. The
 baseline is the strongest naive version, not a strawman: it just has no
 bi-temporal model, so for a past `as_of` it returns the most-recent answer and is
 wrong. The gold set is small and honest about it — expansion to ~30 scenarios is

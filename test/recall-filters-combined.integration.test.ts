@@ -7,7 +7,7 @@ import { EntityResolver } from "../src/resolution/entity-resolver.js";
 import { defaultPredicateRegistry } from "../src/supersession/registry.js";
 import { remember, type RememberDeps } from "../src/pipeline.js";
 import { recall } from "../src/retrieval/recall.js";
-import { BagOfWordsProvider } from "./helpers/bag-of-words-provider.js";
+import { BagOfWordsProvider } from "../eval/bag-of-words-provider.js";
 
 /**
  * recall with its filters COMBINED (as_of + predicate + min_reinforced). Each is

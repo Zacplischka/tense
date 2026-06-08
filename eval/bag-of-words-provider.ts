@@ -1,11 +1,12 @@
-import type { CompletionResult, ProviderClient } from "../../src/provider/types.js";
+import type { CompletionResult, ProviderClient } from "../src/provider/types.js";
 
 /**
- * Deterministic embedding double for the eval harness test: hashes tokens into a
- * fixed 1536-dim term-frequency vector (L2-normalized). Lets the fair baseline do
- * real cosine retrieval without a network call, so the headline (Tense beats
- * baseline on as_of) is proven deterministically. Not a quality model — just a
- * stable, dependency-free stand-in. Matches the migration's vector(1536).
+ * Deterministic embedding double for the eval: hashes tokens into a fixed 1536-dim
+ * term-frequency vector (L2-normalized). Lets the fair baseline do real cosine
+ * retrieval without a network call (or API key), so the headline (Tense beats the
+ * baseline on as_of) is proven deterministically — both by the harness test and by
+ * the no-key `pnpm eval:offline` runner. Not a quality model — just a stable,
+ * dependency-free stand-in. Matches the migration's vector(1536).
  */
 const DIM = 1536;
 
