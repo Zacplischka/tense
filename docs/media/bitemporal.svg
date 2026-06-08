@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 410" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Bi-temporal plane: one Fact plotted on two independent axes. Valid time runs left-to-right (when true in the world); transaction time runs bottom-to-top (when the system knew it). The Alice Fact occupies valid Jan to Jun and transaction t1 to t2 (superseded, dashed grey); the Bob Fact occupies valid Jun to now and transaction t2 to open (Current, indigo). A recall as_of 2024-03-01 reads down the valid-time axis and returns Alice; a live recall returns Bob; history and changes read the transaction-time axis.">
+  <rect x="0" y="0" width="900" height="410" fill="#ffffff"/>
+
+  <!-- title -->
+  <text x="30" y="34" font-size="17" font-weight="700" fill="#0f172a">Bi-temporal &#8212; two clocks: what was true, and when we knew it</text>
+  <text x="30" y="55" font-size="13" fill="#64748b">Zach <tspan fill="#4f46e5" font-weight="600">reports-to</tspan> &#8230; one Fact carries both intervals &#8212; <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#0f172a">valid_at/invalid_at</tspan> and <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#0f172a">created_at/expired_at</tspan></text>
+
+  <!-- axes -->
+  <line x1="150" y1="330" x2="824" y2="330" stroke="#cbd5e1" stroke-width="1.5"/>
+  <polygon points="824,330 816,326 816,334" fill="#cbd5e1"/>
+  <line x1="150" y1="330" x2="150" y2="92" stroke="#cbd5e1" stroke-width="1.5"/>
+  <polygon points="150,92 146,100 154,100" fill="#cbd5e1"/>
+
+  <!-- axis labels -->
+  <text x="824" y="356" font-size="11.5" fill="#94a3b8" text-anchor="end">valid time &#8594; &#160; (when it was true in the world)</text>
+  <text x="34" y="210" font-size="11.5" fill="#94a3b8" text-anchor="middle" transform="rotate(-90 34 210)">transaction time &#8593; &#160; (when the system knew it)</text>
+
+  <!-- valid-time ticks (x) -->
+  <g font-size="11" fill="#94a3b8" text-anchor="middle">
+    <line x1="230" y1="326" x2="230" y2="334" stroke="#cbd5e1"/><text x="230" y="348">2024-01-01</text>
+    <line x1="470" y1="326" x2="470" y2="334" stroke="#cbd5e1"/><text x="470" y="348">2024-06-01</text>
+    <line x1="740" y1="326" x2="740" y2="334" stroke="#cbd5e1"/><text x="740" y="348">now</text>
+  </g>
+
+  <!-- transaction-time ticks (y) -->
+  <g font-size="11" fill="#94a3b8" text-anchor="end">
+    <line x1="146" y1="285" x2="154" y2="285" stroke="#cbd5e1"/><text x="142" y="289">t&#8321; &#183; learned Alice</text>
+    <line x1="146" y1="195" x2="154" y2="195" stroke="#cbd5e1"/><text x="142" y="199">t&#8322; &#183; learned Bob, retired Alice</text>
+    <line x1="146" y1="120" x2="154" y2="120" stroke="#cbd5e1"/><text x="142" y="124">now</text>
+  </g>
+
+  <!-- Fact A: Alice region — valid [Jan,Jun) x transaction [t1,t2): superseded, closed on BOTH axes -->
+  <rect x="230" y="195" width="240" height="90" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4" rx="4"/>
+  <text x="350" y="245" font-size="13" fill="#475569" text-anchor="middle"><tspan font-weight="700">Alice</tspan></text>
+  <text x="350" y="262" font-size="11" fill="#94a3b8" text-anchor="middle">superseded</text>
+
+  <!-- Fact B: Bob region — valid [Jun,now) x transaction [t2,open): Current, open upward -->
+  <rect x="470" y="120" width="270" height="75" fill="#eef2ff" stroke="#4f46e5" stroke-width="2" rx="4"/>
+  <!-- open top edge: transaction time still running (expired_at IS NULL) -->
+  <line x1="470" y1="120" x2="470" y2="104" stroke="#4f46e5" stroke-width="2" stroke-dasharray="3 3"/>
+  <line x1="740" y1="120" x2="740" y2="104" stroke="#4f46e5" stroke-width="2" stroke-dasharray="3 3"/>
+  <text x="605" y="155" font-size="13" fill="#3730a3" text-anchor="middle"><tspan font-weight="700">Bob</tspan></text>
+  <text x="605" y="172" font-size="11" fill="#6366f1" text-anchor="middle">Current &#183; open</text>
+
+  <!-- query: recall(as_of = 2024-03-01) reads DOWN the valid-time axis -> Alice -->
+  <line x1="326" y1="92" x2="326" y2="334" stroke="#4f46e5" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <circle cx="326" cy="195" r="5.5" fill="#4f46e5" stroke="#ffffff" stroke-width="2"/>
+  <text x="326" y="84" font-size="12" font-weight="600" fill="#4f46e5" text-anchor="middle">recall(as_of = "2024-03-01")</text>
+  <text x="336" y="188" font-size="12.5" font-weight="700" fill="#16a34a">&#8594; Alice &#10003;</text>
+
+  <!-- live recall reads the current valid time -> Bob -->
+  <text x="752" y="116" font-size="12" font-weight="600" fill="#64748b" text-anchor="start">recall() live</text>
+  <text x="752" y="132" font-size="12.5" font-weight="700" fill="#16a34a">&#8594; Bob &#10003;</text>
+
+  <!-- captions -->
+  <text x="30" y="384" font-size="12.5" fill="#475569">Two clocks, <tspan font-weight="600">independent</tspan> &#8212; scan &#8594; <tspan font-weight="600">valid time</tspan> for what was true, scan &#8593; <tspan font-weight="600">transaction time</tspan> for when we learned it.</text>
+  <text x="30" y="403" font-size="12.5" fill="#94a3b8">Conflating the two is the mistake Tense exists to avoid. <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#64748b">recall(as_of)</tspan> filters valid time; <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#64748b">history</tspan> / <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#64748b">changes</tspan> walk transaction time.</text>
+</svg>

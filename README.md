@@ -133,6 +133,19 @@ inside an agent's tool-call budget, not a batch job.
   ask both "who does Zach report to *now*?" and "who did he report to *last
   quarter*?" — each answer cites the **Source** it came from.
 
+"Bi-temporal" is the whole game, so it's worth seeing rather than just reading.
+Every Fact is a region on two independent axes — **valid time** (when it was true)
+and **transaction time** (when the system knew it). One reads left-to-right, the
+other bottom-to-top; conflating them is the [signature mistake](./CONTEXT.md) the
+model is built to avoid:
+
+<img src="docs/media/bitemporal.svg" alt="The bi-temporal plane. Valid time runs left-to-right (when a Fact was true in the world); transaction time runs bottom-to-top (when the system learned it). The superseded 'Zach reports-to Alice' Fact occupies valid 2024-01-01→2024-06-01 and transaction t1→t2 (a closed dashed-grey box); the Current 'reports-to Bob' Fact occupies valid 2024-06-01→now and transaction t2→open (a solid indigo box, open at the top because expired_at IS NULL). A recall(as_of='2024-03-01') reads down the valid-time axis and returns Alice; a live recall() returns Bob; history and changes walk the transaction-time axis. Nothing is deleted — Alice stays on the plane." width="100%">
+
+`recall(as_of=…)` filters the **valid-time** axis (what was true then);
+[`history`](#mcp-tools) and [`changes`](#mcp-tools) walk the **transaction-time**
+axis via `learnedAt` / `retiredAt` (when the system learned or retired a Fact).
+Both axes are first-class, and a superseded Fact is closed on both — never deleted.
+
 See [`CONTEXT.md`](./CONTEXT.md) for the full domain glossary.
 
 ## Architecture
