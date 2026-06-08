@@ -70,6 +70,62 @@ tracked in [`eval/gold.ts`](./eval/gold.ts).
 
 See [`CONTEXT.md`](./CONTEXT.md) for the full domain glossary.
 
+## Architecture
+
+One write path, one read path, one Postgres. Ingestion extracts Facts, resolves
+their Entities, and lets `decideFact` route each one — reaffirm, supersede, or
+insert — before an atomic write; recall applies the temporal filter *in SQL first*
+(filter-then-fuse), so superseded Facts never enter the ranking that RRF then fuses.
+
+```mermaid
+flowchart TB
+    subgraph write["remember(text, source) &mdash; write path"]
+        direction TB
+        T["Source text"] --> EX["Extractor<br/>(LLM &middot; stub double)"]
+        EX -->|"Entities + Facts<br/>with valid_at"| ER["Entity Resolver<br/>exact &rarr; pg_trgm fuzzy"]
+        ER --> DEC{"decideFact<br/>per Fact"}
+        DEC -->|"already Current"| RA["Reaffirm<br/>add Source provenance"]
+        DEC -->|"single-valued got<br/>a new object"| SUP["Supersession<br/>close prior + open new<br/>one transaction"]
+        DEC -->|"genuinely new"| NEW["Insert Fact"]
+        SUP -.->|"best-effort"| EMB["Embed (pgvector)"]
+        NEW -.->|"best-effort"| EMB
+        SUP -.->|"optional LLM judge"| CON["Contradiction<br/>cross-Predicate"]
+    end
+
+    subgraph pg["One Postgres &mdash; relational graph + vectors + fuzzy match"]
+        direction TB
+        ENT[("entities &middot; sources<br/>fact_sources provenance")]
+        FACTS[("facts &mdash; bi-temporal<br/>valid_at / invalid_at<br/>created_at / expired_at<br/>Current = expired_at IS NULL")]
+        VEC[("pgvector embeddings &middot; pg_trgm")]
+    end
+
+    subgraph read["recall(query, as_of?) &mdash; read path"]
+        direction TB
+        Q["Query"] --> TF{"Temporal filter in SQL<br/>Current &middot; or valid-at as_of"}
+        TF --> HYB["Hybrid rank<br/>pgvector cosine + full-text &rarr; RRF"]
+        HYB --> OUT["Ranked Facts<br/>+ Source + validity interval"]
+    end
+
+    RA --> ENT
+    NEW --> FACTS
+    SUP --> FACTS
+    CON --> FACTS
+    EMB --> VEC
+    FACTS --> TF
+    VEC --> HYB
+
+    classDef store fill:#0d3b66,stroke:#0a2a4a,color:#fff
+    classDef decide fill:#f4d35e,stroke:#b8962e,color:#1a1a1a
+    class ENT,FACTS,VEC store
+    class DEC,TF decide
+```
+
+The supersession write is one transaction (close prior + open new) and embedding
+is best-effort — a down embedding provider degrades semantic recall but never
+fails a write. The decision diamonds (`decideFact`, `Temporal filter`) map
+directly to [`src/supersession/decide.ts`](./src/supersession/decide.ts) and
+[`src/retrieval/recall.ts`](./src/retrieval/recall.ts).
+
 ## Why Postgres — not a graph database, not Graphiti
 
 The project's thesis is building a temporal knowledge platform *from first
