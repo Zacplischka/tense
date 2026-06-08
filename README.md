@@ -441,8 +441,9 @@ docs/adr/          architecture decisions  ·  CONTEXT.md  domain glossary
 
 Single-tenant, stdio transport, local Postgres. Out of scope (deliberately):
 source-contradiction/trust-ranking (two Sources disagreeing at the *same* time),
-hosting/multi-tenancy/auth, and a viewer timeline scrubber. See the
-[PRD](./.scratch/tense/PRD.md).
+hosting/multi-tenancy/auth, and a draggable, animated timeline slider — the viewer
+ships point-in-time as-of as a date picker (rewind to any past date, above), not a
+dragged-through animation. See the [PRD](./.scratch/tense/PRD.md).
 
 ## License
 

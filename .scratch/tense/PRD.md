@@ -104,7 +104,9 @@ Agents interact through three MCP tools — `remember`, `recall(as_of?)`, and `h
 
 - **Source-contradiction / trust-ranking** (two Sources disagreeing at the *same* time — who to believe). Distinct from temporal Contradiction; deferred.
 - **Mutable attributes as Facts** (e.g. job title) — only entity-entity relationships are Facts in v1, unless a scenario forces otherwise.
-- **Timeline scrubber** in the viewer — stretch goal, cuttable.
+- **Draggable, animated timeline slider** in the viewer — stretch goal. Point-in-time
+  as-of *shipped* as a date picker (rewind to any past date); a dragged-through
+  animation remains unbuilt.
 - **streamable-HTTP transport, hosting, multi-tenancy, auth** — phase 2 (hosted read-only snapshot).
 - **LLM tiebreak in entity resolution** — future work.
 - **Communities, cross-encoder reranking, multi-backend drivers, MinHash/LSH** — overkill at demo scale.
