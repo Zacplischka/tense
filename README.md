@@ -402,4 +402,4 @@ hosting/multi-tenancy/auth, and a viewer timeline scrubber. See the
 
 ## License
 
-MIT.
+MIT — see [LICENSE](./LICENSE).
