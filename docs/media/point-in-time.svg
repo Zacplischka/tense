@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Valid-time timeline: recall(as_of=2024-03-01) returns Alice, the Fact that was true then, while a live recall() returns the Current Fact, Bob.">
+  <rect x="0" y="0" width="900" height="330" fill="#ffffff"/>
+
+  <!-- title -->
+  <text x="30" y="34" font-size="17" font-weight="700" fill="#0f172a">Point-in-time recall &#8212; one query, the answer that was true then</text>
+  <text x="30" y="55" font-size="13" fill="#64748b">Zach <tspan fill="#4f46e5" font-weight="600">reports-to</tspan> &#8230; resolved on valid time, not recency</text>
+
+  <!-- valid-time axis -->
+  <line x1="120" y1="232" x2="858" y2="232" stroke="#cbd5e1" stroke-width="1.5"/>
+  <polygon points="858,232 850,228 850,236" fill="#cbd5e1"/>
+  <text x="858" y="210" font-size="11" fill="#94a3b8" text-anchor="end">valid time &#8594;</text>
+
+  <!-- date ticks -->
+  <g font-size="11" fill="#94a3b8" text-anchor="middle">
+    <line x1="120" y1="228" x2="120" y2="236" stroke="#cbd5e1"/><text x="120" y="250">2024-01-01</text>
+    <line x1="430" y1="228" x2="430" y2="236" stroke="#cbd5e1"/><text x="430" y="250">2024-06-01</text>
+    <line x1="760" y1="228" x2="760" y2="236" stroke="#cbd5e1"/><text x="760" y="250">now</text>
+  </g>
+
+  <!-- Fact A: Alice — superseded, valid [2024-01-01, 2024-06-01) -->
+  <line x1="120" y1="120" x2="430" y2="120" stroke="#94a3b8" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 6"/>
+  <text x="124" y="108" font-size="13" fill="#64748b"><tspan font-weight="700" fill="#475569">Alice</tspan>  &#183; superseded</text>
+
+  <!-- Fact B: Bob — Current, valid [2024-06-01, now) -->
+  <line x1="430" y1="168" x2="754" y2="168" stroke="#4f46e5" stroke-width="7" stroke-linecap="round"/>
+  <polygon points="760,168 750,162 750,174" fill="#4f46e5"/>
+  <text x="434" y="156" font-size="13" fill="#3730a3"><tspan font-weight="700">Bob</tspan>  &#183; Current</text>
+
+  <!-- query line 1: as_of=2024-03-01 lands on Alice -->
+  <line x1="255" y1="70" x2="255" y2="232" stroke="#4f46e5" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <circle cx="255" cy="120" r="5.5" fill="#4f46e5" stroke="#ffffff" stroke-width="2"/>
+  <text x="255" y="86" font-size="12" font-weight="600" fill="#4f46e5" text-anchor="middle">recall(as_of = "2024-03-01")</text>
+  <text x="266" y="138" font-size="12.5" font-weight="700" fill="#16a34a">&#8594; Alice &#10003;</text>
+
+  <!-- query line 2: live recall() lands on Bob -->
+  <line x1="760" y1="118" x2="760" y2="232" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <circle cx="760" cy="168" r="5.5" fill="#4f46e5" stroke="#ffffff" stroke-width="2"/>
+  <text x="754" y="112" font-size="12" font-weight="600" fill="#64748b" text-anchor="end">recall()  &#183; live &#8594; Bob</text>
+
+  <!-- caption -->
+  <text x="30" y="292" font-size="12.5" fill="#475569">Tense filters on <tspan font-weight="600">valid time</tspan>, so a past <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#0f172a">as_of</tspan> returns Alice &#8212; not the latest value. A recency-sorted vector store returns Bob for both.</text>
+  <text x="30" y="311" font-size="12.5" fill="#94a3b8">It also tracks a second clock &#8212; <tspan font-weight="600" fill="#64748b">when it learned each Fact</tspan> &#8212; so it can answer &#8220;what did we believe last quarter?&#8221; too.  <tspan fill="#16a34a" font-weight="600">eval: 5/5 vs 0/5.</tspan></text>
+</svg>
