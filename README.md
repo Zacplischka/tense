@@ -228,9 +228,17 @@ Tense speaks MCP over stdio. Point your client at the built server:
 }
 ```
 
-Or drive it directly with the MCP Inspector:
+Or drive it directly with the MCP Inspector. Launching `dist/server.js` builds the
+real ingest pipeline, which **fails fast** if `OPENROUTER_API_KEY` is unset — so
+export it (and `TENSE_DATABASE_URL`) before any command below, *including the
+read-only `tools/list`*, which otherwise dies at startup before it can answer. Want
+a keyless tour instead? [`pnpm eval:offline`](#the-result) and
+[`pnpm seed:demo`](#reproduce-the-grey-out-demo) need no key at all.
 
 ```bash
+export TENSE_DATABASE_URL=postgres://postgres:tense@localhost:5432/tense
+export OPENROUTER_API_KEY=sk-or-...
+
 npx @modelcontextprotocol/inspector --cli node dist/server.js --method tools/list
 
 npx @modelcontextprotocol/inspector --cli node dist/server.js \
