@@ -1,5 +1,7 @@
 # Tense
 
+[![CI](https://github.com/Zacplischka/tense/actions/workflows/ci.yml/badge.svg)](https://github.com/Zacplischka/tense/actions/workflows/ci.yml)
+
 **Temporal memory for AI agents — knows which version is true.**
 
 Tense is an [MCP](https://modelcontextprotocol.io) server that gives an AI agent a
@@ -101,6 +103,10 @@ pnpm test              # logic + integration tests against real Postgres
 pnpm build             # compile to dist/
 pnpm check             # the full verify gate: typecheck · lint · build · test, plus the viewer (typecheck · build)
 ```
+
+[CI](.github/workflows/ci.yml) runs that exact `pnpm check` gate on every push and
+PR, against a real pgvector Postgres service — the same image as
+`docker-compose.yml`, so the integration tests run on the real schema, not a mock.
 
 ### Connect it to an MCP client (Claude Code / Cursor)
 

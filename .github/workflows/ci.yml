@@ -1,0 +1,73 @@
+# The `pnpm check` gate (typecheck · lint · build · test · viewer), enforced on
+# every push and PR — the same command a contributor runs locally. Integration
+# tests hit a real Postgres (pgvector + pg_trgm), so CI spins up the identical
+# image from docker-compose.yml rather than mocking the database away.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A newer push to the same ref cancels the in-flight run — no wasted minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: typecheck · lint · build · test · viewer
+    runs-on: ubuntu-latest
+
+    # Same Postgres as `docker-compose.yml`: pgvector ships the `vector` and
+    # `pg_trgm` extensions the migrations enable, so tests run against the real
+    # schema, not a stub.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: tense
+          POSTGRES_DB: tense
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tense"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+
+    env:
+      # The test harness creates and migrates `tense_test` on first run
+      # (see test/globalSetup.ts), so CI needs only the connection string.
+      TENSE_DATABASE_URL: postgres://postgres:tense@localhost:5432/tense_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            viewer/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The viewer is a separate package (not a workspace member), so its deps
+      # install independently — `pnpm check` builds it via `check:viewer`.
+      - name: Install viewer dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: viewer
+
+      - name: Run the full check gate
+        run: pnpm check
