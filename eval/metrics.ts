@@ -39,6 +39,8 @@ export interface SupersessionMetrics extends PRF {
   truePositives: number;
   falsePositives: number;
   falseNegatives: number;
+  /** # Facts the gold set says should stay Current — the false-supersession denominator. */
+  shouldStayCurrent: number;
   /** FP / (# Facts that should have stayed Current) — the "forgot a true Fact" rate. */
   falseSupersessionRate: number;
 }
@@ -74,7 +76,7 @@ export function supersessionMetrics(expected: FactState[], actual: FactState[]):
   const f1 = precision + recall ? (2 * precision * recall) / (precision + recall) : 0;
   const falseSupersessionRate = shouldStayCurrent ? fp / shouldStayCurrent : 0;
 
-  return { precision, recall, f1, truePositives: tp, falsePositives: fp, falseNegatives: fn, falseSupersessionRate };
+  return { precision, recall, f1, truePositives: tp, falsePositives: fp, falseNegatives: fn, shouldStayCurrent, falseSupersessionRate };
 }
 
 /** Fraction of matched triples whose extracted valid_at matches the gold. */

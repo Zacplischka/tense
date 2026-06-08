@@ -16,6 +16,15 @@ scenario is excluded offline (it needs a model); `pnpm eval` covers it.
 | False-supersession rate | 0.0% | — |
 | Extraction triple-F1 / valid_at accuracy | 100.0% / 100.0% | — |
 
+Those supersession percentages are not round numbers on an unknown N. Across these
+9 scenarios the gold set asserts Facts that *should* close and Facts that
+*should stay Current* (the "still-true" cases that make false supersession
+measurable at all):
+
+- **Recall 100.0%** — 7 / 7 gold closures caught.
+- **Precision 100.0%** — 7 / 7 closures correct.
+- **False-supersession 0.0%** — 0 / 13 still-true Facts closed.
+
 ## The headline, question by question
 
 The 5 point-in-time questions whose gold answer **changed over

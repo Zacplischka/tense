@@ -33,7 +33,17 @@ export interface EvalReport {
   scenarios: number;
   tripleF1: number;
   validAtAccuracy: number;
-  supersession: { precision: number; recall: number; f1: number; falseSupersessionRate: number };
+  supersession: {
+    precision: number;
+    recall: number;
+    f1: number;
+    /** Auditable counts behind the percentages (so "100%" reconciles against a denominator). */
+    truePositives: number;
+    falsePositives: number;
+    falseNegatives: number;
+    shouldStayCurrent: number;
+    falseSupersessionRate: number;
+  };
   qa: {
     count: number;
     changedCount: number;

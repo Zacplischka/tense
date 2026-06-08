@@ -19,7 +19,16 @@ const report: EvalReport = {
   scenarios: 1,
   tripleF1: 1,
   validAtAccuracy: 1,
-  supersession: { precision: 1, recall: 1, f1: 1, falseSupersessionRate: 0 },
+  supersession: {
+    precision: 1,
+    recall: 1,
+    f1: 1,
+    truePositives: 3,
+    falsePositives: 0,
+    falseNegatives: 0,
+    shouldStayCurrent: 4,
+    falseSupersessionRate: 0,
+  },
   qa: {
     count: 2,
     changedCount: 1,
@@ -52,6 +61,14 @@ describe("eval report renderer (pure, deterministic)", () => {
     const md = renderResultsMarkdown(report);
     expect(md).toContain("point-in-time (1 questions)** | **100.0%** | **0.0%**");
     expect(md).toContain("all questions (2) | 100.0% | 50.0%");
+  });
+
+  it("surfaces the supersession denominators, not just the percentages", () => {
+    const md = renderResultsMarkdown(report);
+    // "100%" must reconcile against an auditable count, not stand alone.
+    expect(md).toContain("3 / 3 gold closures caught"); // recall: TP / (TP+FN)
+    expect(md).toContain("3 / 3 closures correct"); // precision: TP / (TP+FP)
+    expect(md).toContain("0 / 4 still-true Facts closed"); // false-supersession: FP / shouldStayCurrent
   });
 
   it("is byte-identical across renders (deterministic — no clock/random)", () => {

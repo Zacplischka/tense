@@ -41,6 +41,7 @@ describe("eval metrics", () => {
     const actual = [fs("Alice", false, "2024-01-01"), fs("Bob", true, "2024-06-01")]; // Alice wrongly closed
     const m = supersessionMetrics(expected, actual);
     expect(m.falsePositives).toBe(1);
+    expect(m.shouldStayCurrent).toBe(2); // the false-supersession denominator
     expect(m.falseSupersessionRate).toBe(0.5); // 1 of 2 should-stay-current Facts
   });
 
