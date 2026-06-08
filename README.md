@@ -43,12 +43,17 @@ point-in-time question, its `as_of`, and gold vs Tense vs baseline, so you can s
 *which* answers the baseline gets wrong and why (it returns the most-recent value).
 No API key? `pnpm eval:offline` reproduces the headline row with **no spend** —
 stub extraction plus hashed bag-of-words embeddings, Postgres only — printing the
-same **5/5 point-in-time win (100% vs 0%)**, byte-identical every run. It omits
-only the one LLM-judged cross-Predicate scenario (which needs a model), so the
-overall baseline shifts slightly; the headline is fully covered. The
-baseline is the strongest naive version, not a strawman: it just has no
-bi-temporal model, so for a past `as_of` it returns the most-recent answer and is
-wrong. The gold set is small and honest about it — expansion to ~30 scenarios is
+same **5/5 point-in-time win (100% vs 0%)**, byte-identical every run. It runs 9
+of the 10 scenarios (skipping the lone LLM-judged cross-Predicate case, which
+needs a model) over the same 11 QA questions — none of which touch the skipped
+scenario, so Tense stays 100%. The baseline dips to 45.5% (from 55% live) not
+because of that scenario but because the hashed embeddings are weaker: on the one
+tied-`valid_at` "now" question (Tess), where both Facts share a `valid_at` so
+recency can't break the tie, the weaker embedding ranks the wrong Fact first — a
+question real embeddings get right. The headline point-in-time row is identical
+either way. The baseline is the strongest naive version, not a strawman: it just
+has no bi-temporal model, so for a past `as_of` it returns the most-recent answer
+and is wrong. The gold set is small and honest about it — expansion to ~30 scenarios is
 tracked in [`eval/gold.ts`](./eval/gold.ts).
 
 ![Live grey-out: a superseded edge dashes while the new one lights up](docs/media/greyout.gif)

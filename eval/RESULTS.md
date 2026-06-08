@@ -34,8 +34,11 @@ Current *then*.
 
 ## Every question
 
-Including the "now" questions, where the baseline is a fair competitor (it gets
-these right) — proof it is the strongest naive version, not a strawman.
+Including the "now" questions, where the baseline is a fair competitor — it gets
+most of them right, proof it is the strongest naive version, not a strawman. It
+still misses one "now" question: the tied-`valid_at` tiebreak, where both Facts
+share a `valid_at` so recency can't choose between them, and only Tense's
+transaction-time tiebreak picks the later-ingested one.
 
 | Scenario | Question | as_of | Gold | Tense | Baseline |
 |---|---|---|---|---|---|
