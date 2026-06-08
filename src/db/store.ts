@@ -605,6 +605,12 @@ export class TemporalGraphStore {
    * temporal filter. This is the fair vector baseline's retrieval (slice 13): it
    * has no bi-temporal model, so superseded Facts are eligible and it must rely
    * on a recency tiebreak.
+   *
+   * The eligibility of superseded Facts is the load-bearing fairness property: on
+   * a point-in-time question, the historically-correct (now-superseded) Fact is in
+   * the candidate set, so the baseline's miss is an honest ranking choice — recency
+   * picks the wrong one — not structural blindness. Locked by
+   * `test/eval-baseline-fairness.integration.test.ts`.
    */
   async baselineCandidates(
     queryEmbedding: number[],

@@ -4,10 +4,14 @@ import type { ProviderClient } from "../src/provider/types.js";
 /**
  * The fair vector-only baseline (slice 13): the strongest naive version, not a
  * strawman. It uses the SAME Sources and the SAME embedding model as Tense, does
- * top-k cosine retrieval, and is ALLOWED a recency tiebreak. What it lacks is a
- * bi-temporal model — so it cannot filter by `as_of`. For a point-in-time
- * question whose answer changed, it returns the most-recent matching Fact, which
- * is exactly where it loses honestly.
+ * top-k cosine retrieval over a candidate pool that INCLUDES superseded Facts
+ * (`store.baselineCandidates`), and is ALLOWED a recency tiebreak. What it lacks
+ * is a bi-temporal model — so it cannot filter by `as_of`. For a point-in-time
+ * question whose answer changed, the historically-correct Fact is in its pool but
+ * recency ranks the most-recent one first, which is exactly where it loses
+ * honestly — a ranking choice, not blindness. That fairness property (superseded
+ * Facts stay eligible) is locked by
+ * `test/eval-baseline-fairness.integration.test.ts`.
  */
 export async function baselineAnswer(
   store: TemporalGraphStore,

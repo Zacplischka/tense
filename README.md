@@ -51,9 +51,12 @@ because of that scenario but because the hashed embeddings are weaker: on the on
 tied-`valid_at` "now" question (Tess), where both Facts share a `valid_at` so
 recency can't break the tie, the weaker embedding ranks the wrong Fact first — a
 question real embeddings get right. The headline point-in-time row is identical
-either way. The baseline is the strongest naive version, not a strawman: it just
-has no bi-temporal model, so for a past `as_of` it returns the most-recent answer
-and is wrong. The gold set is small and honest about it — expansion to ~30 scenarios is
+either way. The baseline is the strongest naive version, not a strawman: its candidate pool
+**includes the superseded Fact**, so the historically-correct answer is right in
+front of it — it just has no bi-temporal model, so for a past `as_of` its recency
+tiebreak ranks the most-recent answer first and is wrong. That its miss is an
+honest ranking choice (not blindness to the old Fact) is regression-tested in
+[`test/eval-baseline-fairness.integration.test.ts`](./test/eval-baseline-fairness.integration.test.ts). The gold set is small and honest about it — expansion to ~30 scenarios is
 tracked in [`eval/gold.ts`](./eval/gold.ts).
 
 ![Live grey-out: a superseded edge dashes while the new one lights up](docs/media/greyout.gif)
