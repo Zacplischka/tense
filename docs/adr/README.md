@@ -15,6 +15,7 @@ Read them in order for the build story, or jump to the one you're skeptical abou
 | [0005](./0005-reaffirmation-facts-cite-multiple-sources.md) | Reaffirmation: a Fact may cite multiple Sources | A re-stated Current Fact appends a `fact_sources` row instead of inserting a duplicate, so an always-on ingestion stream reinforces beliefs rather than bloating the graph. |
 | [0006](./0006-introspection-and-preview-surface.md) | Read-only introspection and dry-run preview surface | `stats` / `entities` / `sources` let an agent audit its own memory, and `preview` shows what an ingest *would* do before committing — added around the write/query core without touching it. |
 | [0007](./0007-ingest-assumes-a-single-writer.md) | Ingest assumes a single writer (concurrency model) | The read→decide→write path is not one atomic unit; correct under the current single-writer entry points, with the per-subject lock it would need under concurrent ingest documented up front. |
+| [0008](./0008-hybrid-recall-filter-then-fuse.md) | Hybrid recall: filter-then-fuse, ranked by RRF | The temporal filter runs in SQL *before* two rankers (pgvector cosine + full-text) fuse via Reciprocal Rank Fusion — so superseded Facts never enter the ranking, and RRF needs no score normalization across the two incomparable scales. |
 
 Format: each record is a short prose decision, a **Considered options** list (with
 the rejected ones and why), and a **Consequences** section. There is no status

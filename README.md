@@ -202,7 +202,9 @@ The supersession write is one transaction (close prior + open new) and embedding
 is best-effort — a down embedding provider degrades semantic recall but never
 fails a write. The decision diamonds (`decideFact`, `Temporal filter`) map
 directly to [`src/supersession/decide.ts`](./src/supersession/decide.ts) and
-[`src/retrieval/recall.ts`](./src/retrieval/recall.ts).
+[`src/retrieval/recall.ts`](./src/retrieval/recall.ts). Why the temporal filter
+runs *in SQL before* the two rankers fuse — and why fusion is RRF, not a tuned
+weighted blend — is [ADR 0008](./docs/adr/0008-hybrid-recall-filter-then-fuse.md).
 
 ## Why Postgres — not a graph database, not Graphiti
 
@@ -239,6 +241,7 @@ index with the crux of each: [`docs/adr/`](./docs/adr/README.md).
 | [0005](./docs/adr/0005-reaffirmation-facts-cite-multiple-sources.md) | Reaffirmation: a Fact may cite multiple Sources instead of duplicating |
 | [0006](./docs/adr/0006-introspection-and-preview-surface.md) | Read-only introspection + dry-run `preview` surface |
 | [0007](./docs/adr/0007-ingest-assumes-a-single-writer.md) | Ingest assumes a single writer — concurrency model documented up front |
+| [0008](./docs/adr/0008-hybrid-recall-filter-then-fuse.md) | Hybrid recall — filter-then-fuse, two rankers fused by RRF (no score normalization) |
 
 ## Quickstart
 
