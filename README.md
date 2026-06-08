@@ -15,6 +15,10 @@ plain vector store cannot.
 > know the second **superseded** the first, when that happened, or who Zach
 > reported to last quarter. Tense does.
 
+*Short on time? [**`docs/CASE-STUDY.md`**](./docs/CASE-STUDY.md) is the 2-minute
+narrative — the problem, the bet, the decision I had to defend, and how it's proven
+— with every claim linked to the code, eval, or ADR that backs it.*
+
 <img src="docs/media/point-in-time.svg" alt="Valid-time timeline: recall(as_of='2024-03-01') returns Alice — the Fact that was true then — while a live recall() returns the Current Fact, Bob. A recency-sorted vector store returns Bob for both." width="100%">
 
 ## The result
