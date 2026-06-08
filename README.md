@@ -259,6 +259,23 @@ superseded Facts greyed/dashed, updating live as Facts change. New Entities and
 Facts glow in on a stable layout (existing nodes never move), so you can watch the
 graph *grow*.
 
+#### Reproduce the grey-out demo
+
+The GIF above is one command per beat — and it needs **no API key**: the seed
+pins extraction to the deterministic `StubExtractor`, so the only things live on
+camera are the supersession resolver and the viewer. With the viewer open in one
+terminal, run these in another (project root):
+
+```bash
+pnpm seed:demo          # Beat 1: Zach → Alice, knows Carol, lives in Berlin
+pnpm seed:demo beat2    # Beat 2: Zach → Bob — watch the reports-to edge grey out live
+```
+
+Beat 1 truncates first and asserts the subject resolved to exactly **one** Entity
+(a forked subject would add a parallel edge instead of greying the old one), so a
+broken seed fails loudly rather than filming wrong. Use `pnpm seed:demo all` for a
+non-interactive run of both beats. To replay, just re-run `pnpm seed:demo`.
+
 Beyond watching it grow, the viewer is **interactive**:
 
 - **As-of scrubber** — set a past date and the graph rewinds to whatever was
