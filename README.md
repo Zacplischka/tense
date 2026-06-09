@@ -169,6 +169,36 @@ inside an agent's tool-call budget, not a batch job.
   ask both "who does Zach report to *now*?" and "who did he report to *last
   quarter*?" — each answer cites the **Source** it came from.
 
+That model isn't prose layered over a generic store — it *is* the table. The four
+time columns and the partial index that defines *Current* are the schema itself
+([`migrations/0001_init.sql`](./migrations/0001_init.sql)):
+
+```sql
+CREATE TABLE facts (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    subject_id uuid NOT NULL REFERENCES entities (id),
+    predicate  text NOT NULL,
+    object_id  uuid NOT NULL REFERENCES entities (id),
+    source_id  uuid NOT NULL REFERENCES sources (id),
+
+    valid_at   timestamptz,    -- valid time: when it was true IN THE WORLD
+    invalid_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now(),  -- transaction time: when the
+    expired_at timestamptz                          -- SYSTEM held it Current
+);
+
+-- "Which version is true now" is one partial index, not application logic.
+-- Every Current read (recall, the viewer, the supersession lookup) goes through it.
+CREATE INDEX idx_facts_current ON facts (subject_id, predicate)
+    WHERE expired_at IS NULL;
+```
+
+A Fact is **Current iff `expired_at IS NULL`** — supersession sets that column and
+opens a new row in the same transaction, so the prior value is closed, never
+deleted, and still queryable by `as_of`. The two time pairs are independent on
+purpose: that is what lets one row answer both *what was true then* and *when the
+system learned it*.
+
 "Bi-temporal" is the whole game, so it's worth seeing rather than just reading.
 Every Fact is a region on two independent axes — **valid time** (when it was true)
 and **transaction time** (when the system knew it). One reads left-to-right, the
