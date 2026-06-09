@@ -86,6 +86,34 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     expect(recalled[0].source).toBeTruthy();
   });
 
+  it("point-in-time recall crosses the MCP wire: as_of returns who was Current then, not now", async () => {
+    // The project's headline behavior — recall(as_of=…) — exercised end-to-end over
+    // the real MCP boundary, not just the recall() unit. This is the exact call the
+    // README's flagship Inspector command makes (`--tool-arg 'as_of=2024-03-01'`):
+    // the temporal filter, the supersession, AND the as_of arg all have to survive
+    // the snake_case JSON wire for an agent to get the historically-correct answer.
+    const client = await connect(depsWith(new StubExtractor()));
+
+    await client.callTool({ name: "remember", arguments: { text: "[2024-01-01] Zach reports to Alice." } });
+    await client.callTool({ name: "remember", arguments: { text: "[2024-06-01] Zach reports to Bob." } });
+
+    // Live recall returns the Current Fact — Bob.
+    const now = payload(await client.callTool({ name: "recall", arguments: { query: "Zach reports to" } }));
+    expect(now.map((f: any) => f.object)).toEqual(["Bob"]);
+
+    // recall(as_of="2024-03-01") returns who was Current THEN — Alice — closed off
+    // at the moment Bob took over. A recency-sorted vector store cannot do this; it
+    // is the win the eval scores and the demo shows, now locked on the MCP wire the
+    // agent actually calls. The validity interval crosses the wire as ISO strings.
+    const then = payload(
+      await client.callTool({ name: "recall", arguments: { query: "Zach reports to", as_of: "2024-03-01" } }),
+    );
+    expect(then).toHaveLength(1);
+    expect(then[0]).toMatchObject({ object: "Alice", current: false });
+    expect(then[0].validAt).toBe("2024-01-01T00:00:00.000Z");
+    expect(then[0].invalidAt).toBe("2024-06-01T00:00:00.000Z");
+  });
+
   it("carries the agent-facing signals across the JSON boundary (reason, learnedAt, history retiredAt)", async () => {
     const client = await connect(depsWith(new StubExtractor()));
 
@@ -196,5 +224,39 @@ describe("MCP adapter (real client <-> server, provider replayed)", () => {
     // The server is unharmed: a tool whose store call is healthy still answers.
     const stats = payload(await client.callTool({ name: "stats", arguments: {} }));
     expect(stats.facts).toMatchObject({ total: 0 });
+  });
+
+  it("rejects a malformed as_of before it reaches the store, with a message naming the bad value", async () => {
+    // The adapter parses as_of into a Date and guards Number.isNaN BEFORE calling
+    // recall — so a garbled agent date ("last Tuesday") returns a clear isError, not
+    // an `Invalid Date` that silently slips into the SQL temporal filter. Untested
+    // until now: this locks that the guard fires and echoes the offending value.
+    const client = await connect(depsWith(new StubExtractor()));
+
+    const res: any = await client.callTool({
+      name: "recall",
+      arguments: { query: "Zach", as_of: "last Tuesday" },
+    });
+    expect(res.isError).toBe(true);
+    expect(res.content[0].text).toBe("invalid as_of date: last Tuesday");
+
+    // A well-formed as_of on the same client still works — the guard rejects bad
+    // input, it doesn't wedge the tool.
+    const ok = payload(await client.callTool({ name: "recall", arguments: { query: "", as_of: "2024-03-01" } }));
+    expect(Array.isArray(ok)).toBe(true);
+  });
+
+  it("rejects a malformed changes `since` the same way", async () => {
+    // `changes` applies the identical NaN-date guard to `since`; lock it too so an
+    // incremental-sync caller gets a named error instead of a silent empty feed.
+    const client = await connect(depsWith(new StubExtractor()));
+
+    const res: any = await client.callTool({ name: "changes", arguments: { since: "yesterday" } });
+    expect(res.isError).toBe(true);
+    expect(res.content[0].text).toBe("invalid since date: yesterday");
+
+    // Server stays alive: a valid `since` returns a (here empty) feed.
+    const ok = payload(await client.callTool({ name: "changes", arguments: { since: "1970-01-01" } }));
+    expect(Array.isArray(ok)).toBe(true);
   });
 });
