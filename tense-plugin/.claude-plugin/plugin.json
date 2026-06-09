@@ -1,0 +1,22 @@
+{
+  "name": "tense",
+  "version": "0.1.0",
+  "description": "Temporal memory for coding agents — an MCP server that tracks not just what it was told but when each thing was true, so it knows which version is current and what was true as of any past date.",
+  "author": { "name": "Zac Plischka", "url": "https://github.com/Zacplischka" },
+  "homepage": "https://github.com/Zacplischka/tense",
+  "repository": "https://github.com/Zacplischka/tense",
+  "license": "MIT",
+  "keywords": ["mcp", "memory", "temporal", "bi-temporal", "knowledge-graph"],
+  "mcpServers": {
+    "tense": {
+      "command": "npx",
+      "args": ["-y", "github:Zacplischka/tense"],
+      "env": {
+        "TENSE_DATABASE_URL": "${TENSE_DATABASE_URL:-postgres://postgres:tense@localhost:5432/tense}",
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
+        "TENSE_EXTRACTION_MODEL": "${TENSE_EXTRACTION_MODEL:-openai/gpt-4o-mini}",
+        "TENSE_EMBEDDING_MODEL": "${TENSE_EMBEDDING_MODEL:-openai/text-embedding-3-small}"
+      }
+    }
+  }
+}

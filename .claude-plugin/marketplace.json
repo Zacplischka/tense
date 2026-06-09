@@ -1,0 +1,12 @@
+{
+  "name": "tense",
+  "description": "Claude Code plugins for Tense, the temporal MCP memory server for coding agents.",
+  "owner": { "name": "Zac Plischka", "url": "https://github.com/Zacplischka/tense" },
+  "plugins": [
+    {
+      "name": "tense",
+      "source": "./tense-plugin",
+      "description": "Temporal memory for coding agents — an MCP server that knows which version of a fact is true, and what was true as of any past date."
+    }
+  ]
+}

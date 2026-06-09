@@ -1,7 +1,6 @@
 {
   "name": "tense",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Temporal memory for AI agents — knows which version is true.",
   "license": "MIT",
@@ -9,7 +8,16 @@
   "bin": {
     "tense": "dist/server.js"
   },
+  "files": [
+    "dist",
+    "migrations",
+    "README.md",
+    "SECURITY.md",
+    ".claude-plugin",
+    "tense-plugin"
+  ],
   "scripts": {
+    "prepare": "npm run build",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",

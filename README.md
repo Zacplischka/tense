@@ -318,6 +318,37 @@ index with the crux of each: [`docs/adr/`](./docs/adr/README.md).
 
 ## Quickstart
 
+### 1-3 line agent install
+
+Tense is just an MCP stdio server, so any coding agent with MCP support can use it.
+For Claude Code the install is two copy-paste lines after you have Docker, Node ≥ 20,
+and `OPENROUTER_API_KEY` available in your shell:
+
+```bash
+npm install -g github:Zacplischka/tense
+claude mcp add tense -e TENSE_DATABASE_URL='postgres://postgres:tense@localhost:5432/tense' -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" -- node "$(command -v tense)"
+```
+
+For Cursor, Windsurf, Goose, Cline, Continue, or any other MCP client, run one line
+and paste the generated `mcpServers.tense` block:
+
+```bash
+tense init
+```
+
+Claude plugin route: this repo also carries a Claude Code plugin manifest. Add the
+repo as a marketplace, then install the plugin:
+
+```bash
+claude plugin marketplace add github:Zacplischka/tense
+claude plugin install tense@tense
+```
+
+Tense needs Postgres/pgvector. The local developer setup below starts the same
+container image CI uses and runs migrations.
+
+### Local development
+
 Requires Docker and Node ≥ 20 (with [pnpm](https://pnpm.io)).
 
 ```bash
@@ -348,9 +379,10 @@ supersession resolver and its [invariants](./test/supersession-resolver.invarian
 RRF fusion, and the predicate registry — fast to run and exhaustive on the rules
 that decide whether a Fact supersedes, reaffirms, or inserts.
 
-### Connect it to an MCP client (Claude Code / Cursor)
+### Connect it to an MCP client (Claude Code / Cursor / any coding agent)
 
-Tense speaks MCP over stdio. Point your client at the built server:
+Tense speaks MCP over stdio. `tense init` prints this block with the installed
+absolute path already filled in. Point your client at the built server:
 
 ```jsonc
 {
