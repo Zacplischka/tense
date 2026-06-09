@@ -1,3 +1,9 @@
+# The viewer is part of the workspace so a fresh CI install creates
+# viewer/node_modules before the root `check:viewer` script runs.
+packages:
+  - .
+  - viewer
+
 # pnpm 10+ reads build-script allowlists here, not from the package.json "pnpm"
 # field (which newer pnpm ignores with a warning). esbuild ships a postinstall
 # binary fetch, so it must be allowed to run its build script.

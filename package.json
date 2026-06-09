@@ -29,7 +29,7 @@
     "typecheck": "tsc -p tsconfig.check.json",
     "lint": "eslint . --max-warnings 0",
     "check": "npm run typecheck && npm run lint && npm run build && npm test && npm run check:viewer",
-    "check:viewer": "npm --prefix viewer run typecheck && npm --prefix viewer run build"
+    "check:viewer": "pnpm --dir viewer run typecheck && pnpm --dir viewer run build"
   },
   "engines": {
     "node": ">=20"
