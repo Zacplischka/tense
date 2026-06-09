@@ -186,13 +186,33 @@ ${qaTable(r.qa.items)}
 `;
 }
 
-/** Compact terminal breakdown of the point-in-time rows (printed after the summary). */
+/**
+ * Compact terminal breakdown printed after the summary. Shows the point-in-time
+ * rows (the bi-temporal win) AND the "now" control rows where the baseline
+ * competes — so a reviewer running the command sees the baseline win the "now"
+ * questions, not only lose the 5 point-in-time ones. That fairness is otherwise
+ * only visible in RESULTS.md; surfacing it here keeps the terminal from reading
+ * as if the baseline were a strawman it deliberately is not.
+ */
 export function renderQaBreakdown(r: EvalReport): string {
-  const changed = r.qa.items.filter((i) => i.changed);
-  const lines = changed.map((i) => {
+  const row = (i: QaItem): string => {
     const t = `${dash(i.tense)} ${mark(i, i.tense)}`;
     const b = `${dash(i.baseline)} ${mark(i, i.baseline)}`;
     return `  ${i.question} @ ${asOfLabel(i.asOf).padEnd(10)} gold=${i.gold.padEnd(7)} Tense=${t.padEnd(9)} baseline=${b}`;
-  });
-  return [`Point-in-time questions (gold answer changed over time):`, ...lines].join("\n");
+  };
+  const changed = r.qa.items.filter((i) => i.changed);
+  const now = r.qa.items.filter((i) => !i.changed);
+  const baseRight = (items: QaItem[]): number => items.filter((i) => mark(i, i.baseline) === "✓").length;
+
+  return [
+    `Point-in-time questions (gold answer changed over time) — the bi-temporal win:`,
+    ...changed.map(row),
+    ``,
+    `"Now" questions (answer is the latest value) — where the baseline competes fairly:`,
+    ...now.map(row),
+    ``,
+    `  → Baseline: ${baseRight(now)}/${now.length} on "now" questions vs ${baseRight(changed)}/${changed.length} on point-in-time.`,
+    `    It is the strongest naive version, not a strawman — it competes on the "now"`,
+    `    answers and loses the point-in-time set, where no single-time-axis store can win.`,
+  ].join("\n");
 }

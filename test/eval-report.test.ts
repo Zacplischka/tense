@@ -99,4 +99,14 @@ describe("eval report renderer (pure, deterministic)", () => {
     expect(out).toContain("gold=Alice");
     expect(out).toContain("baseline=Bob ✗");
   });
+
+  it("terminal breakdown also shows the 'now' controls so the baseline's fairness is visible", () => {
+    const out = renderQaBreakdown(report);
+    // The "now" section exists and carries the control question the baseline gets right.
+    expect(out).toContain('"Now" questions');
+    expect(out).toContain("baseline=Bob ✓");
+    // The fairness summary reconciles: 1/1 "now" vs 0/1 point-in-time for the baseline.
+    expect(out).toContain('Baseline: 1/1 on "now" questions vs 0/1 on point-in-time');
+    expect(out).toContain("not a strawman");
+  });
 });
