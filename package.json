@@ -17,7 +17,6 @@
     "tense-plugin"
   ],
   "scripts": {
-    "prepare": "npm run build",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",

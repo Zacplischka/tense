@@ -1,0 +1,74 @@
+/**
+ * Pure, deterministic supersession resolver — the cardinality path (ADR 0002).
+ * Decides, for an incoming Fact and the existing Current Facts on the same
+ * (subject, predicate), which Fact closes and with what bi-temporal intervals.
+ * Touches no database; the caller applies the plan via the store's atomic
+ * supersession boundary.
+ */
+export function resolveSupersession(input) {
+    const { newFact, candidateFacts, registry, now } = input;
+    const bornCurrent = {
+        validAt: newFact.validAt,
+        invalidAt: null,
+        expiredAt: null,
+    };
+    // Multi-valued (and unknown -> multi, fail-safe): cardinality never supersedes.
+    if (registry.cardinalityOf(newFact.predicate) !== "single") {
+        return { direction: "no-supersession", toClose: [], newFact: bornCurrent };
+    }
+    if (candidateFacts.length === 0) {
+        return { direction: "no-supersession", toClose: [], newFact: bornCurrent };
+    }
+    // Single-valued. Direction rule (ADR 0002): the Fact with the earlier valid_at
+    // closes. The incoming Fact's transaction time is `now`, later than any
+    // existing createdAt, so when valid time can't decide (null) or ties, the
+    // transaction-time fallback makes the incoming Fact the live truth.
+    // An existing Fact outranks the incoming one only when valid time proves it is
+    // newer — i.e. out-of-order ingestion.
+    const newerExisting = candidateFacts
+        .filter((c) => existingIsNewer(c, newFact.validAt))
+        .sort((a, b) => a.validAt.getTime() - b.validAt.getTime());
+    if (newerExisting.length > 0) {
+        // The incoming Fact is actually older than an existing one -> born expired.
+        // Its valid interval ends when the next (earliest-newer) truth began.
+        const nextTruth = newerExisting[0];
+        return {
+            direction: "existing-supersedes-new",
+            toClose: [],
+            newFact: {
+                validAt: newFact.validAt,
+                invalidAt: nextTruth.validAt,
+                expiredAt: now,
+            },
+        };
+    }
+    // The incoming Fact is the live truth -> close every existing Current Fact.
+    const toClose = candidateFacts.map((c) => ({
+        factId: c.id,
+        ...closeIntervals(newFact.validAt, now),
+    }));
+    return { direction: "new-supersedes-existing", toClose, newFact: bornCurrent };
+}
+/**
+ * The valid-time direction rule (ADR 0002), shared by BOTH supersession paths —
+ * cardinality (above) and LLM-judged contradiction (slice 12) — so direction is
+ * decided in exactly one place. Is the existing Fact newer (in valid time) than
+ * the incoming one? True only when both valid times are known and the existing
+ * one is strictly later. A null valid_at on either side, or a tie, defers to the
+ * transaction-time fallback (the incoming Fact, ingested now, is the live truth).
+ */
+export function existingIsNewer(existing, newValidAt) {
+    if (existing.validAt === null || newValidAt === null)
+        return false;
+    return existing.validAt.getTime() > newValidAt.getTime();
+}
+/**
+ * The close intervals when a Fact is retired by a newer one: valid-time end is
+ * the newer Fact's valid_at when known, else the transaction time as an explicit,
+ * documented fallback (never silently reused as if it were valid time);
+ * transaction-time end is now.
+ */
+export function closeIntervals(newerValidAt, now) {
+    return { invalidAt: newerValidAt ?? now, expiredAt: now };
+}
+//# sourceMappingURL=resolver.js.map
