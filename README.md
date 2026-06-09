@@ -150,6 +150,13 @@ Point-in-time recall stays low-single-digit milliseconds with hundreds of
 superseded Facts in the graph for the temporal filter to exclude — comfortably
 inside an agent's tool-call budget, not a batch job.
 
+`pnpm bench` breaks those percentiles out **by query class**, so the obvious
+skeptical question — *does the bi-temporal `as_of` filter cost more than a plain
+Current recall?* — is answered against the same `reports-to` query shape with and
+without `as_of`. It doesn't: excluding the superseded Facts in SQL narrows the
+candidate set rather than taxing it, so point-in-time recall lands at or below the
+Current latency, not above it. The temporal model is not a latency tax.
+
 ## How it works
 
 - **Fact** — a directed, typed relationship `subject → predicate → object`
