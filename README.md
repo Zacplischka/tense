@@ -325,15 +325,14 @@ For Claude Code the install is two copy-paste lines after you have Docker, Node 
 and `OPENROUTER_API_KEY` available in your shell:
 
 ```bash
-npm install -g github:Zacplischka/tense
-claude mcp add tense -e TENSE_DATABASE_URL='postgres://postgres:tense@localhost:5432/tense' -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" -- node "$(command -v tense)"
+claude mcp add tense -e TENSE_DATABASE_URL='postgres://postgres:tense@localhost:5432/tense' -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" -- npx -y github:Zacplischka/tense
 ```
 
 For Cursor, Windsurf, Goose, Cline, Continue, or any other MCP client, run one line
 and paste the generated `mcpServers.tense` block:
 
 ```bash
-tense init
+npx -y github:Zacplischka/tense init
 ```
 
 Claude plugin route: this repo also carries a Claude Code plugin manifest. Add the

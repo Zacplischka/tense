@@ -1,3 +1,4 @@
+import process from "node:process";
 import { describe, expect, it } from "vitest";
 import {
   mcpServerEntry,
@@ -39,6 +40,12 @@ describe("CLI install config", () => {
   });
 
   describe("mcpServerEntry", () => {
+    it("defaults to a portable npx GitHub launch for any MCP client", () => {
+      const entry = mcpServerEntry();
+      expect(entry.command).toBe("npx");
+      expect(entry.args).toEqual(["-y", "github:Zacplischka/tense"]);
+    });
+
     it("is a node + absolute-path stdio launch with env", () => {
       const entry = mcpServerEntry({ serverPath });
       expect(entry.command).toBe("node");
@@ -64,12 +71,16 @@ describe("CLI install config", () => {
 
   describe("renderClaudeAddCommand", () => {
     it("is a single `claude mcp add` line carrying env and the launch", () => {
-      const cmd = renderClaudeAddCommand({ serverPath });
+      const cmd = renderClaudeAddCommand();
       expect(cmd.startsWith("claude mcp add tense ")).toBe(true);
       expect(cmd).toContain('-e OPENROUTER_API_KEY="$OPENROUTER_API_KEY"');
       expect(cmd).toContain("-e TENSE_DATABASE_URL=");
-      expect(cmd).toContain(`-- node '${serverPath}'`);
+      expect(cmd).toContain("-- npx -y github:Zacplischka/tense");
       expect(cmd).not.toContain("\n"); // one line, copy-pasteable
+    });
+
+    it("can render a local absolute-path launch for a checked-out build", () => {
+      expect(renderClaudeAddCommand({ serverPath })).toContain(`-- node '${serverPath}'`);
     });
 
     it("does not print a process OPENROUTER_API_KEY secret into generated install output", () => {

@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { loadConfig } from "../config.js";
 /** Shown in place of a real key when the environment has none yet. */
 const KEY_PLACEHOLDER = "sk-or-...";
+const GITHUB_SPEC = "github:Zacplischka/tense";
 /** Absolute path to the installed MCP server entry — resolved from this module. */
 export function resolveServerPath() {
     // install.ts → dist/cli/install.js (built) or src/cli/install.ts (tests);
@@ -38,9 +39,16 @@ export function serverEnv(opts = {}) {
 }
 /** The stdio launch block for one `mcpServers` entry. */
 export function mcpServerEntry(opts = {}) {
+    if (!opts.serverPath) {
+        return {
+            command: "npx",
+            args: ["-y", GITHUB_SPEC],
+            env: serverEnv(opts),
+        };
+    }
     return {
         command: "node",
-        args: [opts.serverPath ?? resolveServerPath()],
+        args: [opts.serverPath],
         env: serverEnv(opts),
     };
 }
@@ -54,13 +62,13 @@ function shellQuote(value) {
 }
 /** A one-line `claude mcp add` that registers Tense with env, for Claude Code. */
 export function renderClaudeAddCommand(opts = {}) {
-    const path = opts.serverPath ?? resolveServerPath();
+    const launch = opts.serverPath ? `node ${shellQuote(opts.serverPath)}` : `npx -y ${GITHUB_SPEC}`;
     const env = serverEnv(opts);
     const keyValue = opts.openrouterApiKey ? shellQuote(opts.openrouterApiKey) : '"$OPENROUTER_API_KEY"';
     const flags = Object.entries({ ...env, OPENROUTER_API_KEY: keyValue })
         .map(([k, v]) => `-e ${k}=${k === "OPENROUTER_API_KEY" ? v : shellQuote(v)}`)
         .join(" ");
-    return `claude mcp add tense ${flags} -- node ${shellQuote(path)}`;
+    return `claude mcp add tense ${flags} -- ${launch}`;
 }
 /** The full human-facing onboarding message `tense init` prints to stdout. */
 export function renderInstall(opts = {}) {
