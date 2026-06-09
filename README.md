@@ -19,6 +19,31 @@ plain vector store cannot.
 narrative — the problem, the bet, the decision I had to defend, and how it's proven
 — with every claim linked to the code, eval, or ADR that backs it.*
 
+## Install in your agent
+
+Tense is just an MCP stdio server, so any coding agent with MCP support can use it.
+For Claude Code, set `TENSE_DATABASE_URL` and `OPENROUTER_API_KEY`, then add the
+server in one line:
+
+```bash
+claude mcp add tense -e TENSE_DATABASE_URL="$TENSE_DATABASE_URL" -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" -- npx -y github:Zacplischka/tense
+```
+
+For Cursor, Windsurf, Goose, Cline, Continue, or any other MCP client, run one line
+and paste the generated `mcpServers.tense` block:
+
+```bash
+npx -y github:Zacplischka/tense init
+```
+
+Claude plugin route: this repo also carries a Claude Code plugin manifest. Add the
+repo as a marketplace, then install the plugin:
+
+```bash
+claude plugin marketplace add github:Zacplischka/tense
+claude plugin install tense@tense
+```
+
 <img src="docs/media/point-in-time.svg" alt="Valid-time timeline: recall(as_of='2024-03-01') returns Alice — the Fact that was true then — while a live recall() returns the Current Fact, Bob. A recency-sorted vector store returns Bob for both." width="100%">
 
 ## The result
@@ -317,31 +342,6 @@ index with the crux of each: [`docs/adr/`](./docs/adr/README.md).
 | [0008](./docs/adr/0008-hybrid-recall-filter-then-fuse.md) | Hybrid recall — filter-then-fuse, two rankers fused by RRF (no score normalization) |
 
 ## Quickstart
-
-### 1-3 line agent install
-
-Tense is just an MCP stdio server, so any coding agent with MCP support can use it.
-For Claude Code the install is two copy-paste lines after you have Docker, Node ≥ 20,
-and `OPENROUTER_API_KEY` available in your shell:
-
-```bash
-claude mcp add tense -e TENSE_DATABASE_URL='postgres://postgres:tense@localhost:5432/tense' -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" -- npx -y github:Zacplischka/tense
-```
-
-For Cursor, Windsurf, Goose, Cline, Continue, or any other MCP client, run one line
-and paste the generated `mcpServers.tense` block:
-
-```bash
-npx -y github:Zacplischka/tense init
-```
-
-Claude plugin route: this repo also carries a Claude Code plugin manifest. Add the
-repo as a marketplace, then install the plugin:
-
-```bash
-claude plugin marketplace add github:Zacplischka/tense
-claude plugin install tense@tense
-```
 
 Tense needs Postgres/pgvector. The local developer setup below starts the same
 container image CI uses and runs migrations.
