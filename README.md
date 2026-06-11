@@ -365,7 +365,8 @@ PR, against a real pgvector Postgres service — the same image as
 
 ### Tested against a real database, not mocks
 
-`pnpm test` runs **230 tests across 46 spec files** (~60s, all green). The number
+`pnpm test` runs **237 tests across 47 spec files** (~15s locally, all green;
+3 environment-gated tests skip without their keys). The number
 isn't the point — *what* they run against is: **28 of those files are integration
 tests that exercise a real pgvector Postgres**, created and migrated per run by
 [`test/globalSetup.ts`](./test/globalSetup.ts), not an in-memory shim or a mocked
